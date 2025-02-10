@@ -38,6 +38,7 @@ build/
 src/main/webapp/node_modules
 src/main/webapp/.pnp
 src/main/webapp/.pnp.js
+src/main/resources/static/
 
 # testing
 src/main/webapp/coverage

@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.Builder;
 import java.time.LocalDateTime;
 import com.anpl.model.RegistrationStatus;
-import com.anpl.model.PaymentStatus;
 
 @Data
 @Builder
@@ -18,7 +17,6 @@ public class EventRegistrationResponse {
     private String tshirtSize;
     private Integer eventYear;
     private RegistrationStatus registrationStatus;
-    private PaymentStatus paymentStatus;
     private LocalDateTime registrationDate;
     private EventResponse event;
 

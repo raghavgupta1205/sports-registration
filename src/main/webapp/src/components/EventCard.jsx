@@ -11,7 +11,52 @@ import {
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 
 const EventCard = ({ event, registrationStatus, onRegister, onCheckPayment }) => {
-  const { isRegistered, isPending, registrationId } = registrationStatus;
+  // Find registration for this event from the array
+  const registration = Array.isArray(registrationStatus?.data) 
+    ? registrationStatus.data.find(reg => reg.eventId === event.id)
+    : null;
+  
+  const { id, registrationId, status } = registration || {};
+  const regId = registrationId || id; // Handle both possible field names
+  const hasRegistration = !!regId;
+
+  const getStatusChip = () => {
+    if (hasRegistration && status === 'APPROVED') {
+      return <Chip 
+        icon={<CheckCircleIcon />} 
+        label="Registered" 
+        color="success" 
+        variant="outlined" 
+      />;
+    } else if (hasRegistration && status === 'PENDING') {
+      return <Button
+        variant="outlined"
+        color="warning"
+        onClick={() => onCheckPayment(regId)}
+        fullWidth
+      >
+        Check Payment Status
+      </Button>;
+    } else if (hasRegistration && status === 'FAILED') {
+      return <Button
+        variant="contained"
+        color="error"
+        onClick={() => onRegister(event)}
+        fullWidth
+      >
+        Try Again
+      </Button>;
+    } else {
+      return <Button
+        variant="contained"
+        color="primary"
+        onClick={() => onRegister(event)}
+        fullWidth
+      >
+        Register Now
+      </Button>;
+    }
+  };
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -36,32 +81,7 @@ const EventCard = ({ event, registrationStatus, onRegister, onCheckPayment }) =>
       </CardContent>
       
       <CardActions>
-        {isRegistered && !isPending ? (
-          <Chip
-            icon={<CheckCircleIcon />}
-            label="Registered"
-            color="success"
-            variant="outlined"
-          />
-        ) : isRegistered && isPending ? (
-          <Button
-            variant="outlined"
-            color="warning"
-            onClick={() => onCheckPayment(registrationId)}
-            fullWidth
-          >
-            Check Payment Status
-          </Button>
-        ) : (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => onRegister(event)}
-            fullWidth
-          >
-            Register Now
-          </Button>
-        )}
+        {getStatusChip()}
       </CardActions>
     </Card>
   );

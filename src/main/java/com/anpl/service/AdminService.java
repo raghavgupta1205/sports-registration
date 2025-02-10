@@ -60,7 +60,6 @@ public class AdminService {
                 row.createCell(4).setCellValue(user.getBlock());
                 row.createCell(5).setCellValue(user.getTshirtSize());
                 row.createCell(6).setCellValue(registration.getRegistrationStatus().toString());
-                row.createCell(7).setCellValue(registration.getPaymentStatus().toString());
                 row.createCell(8).setCellValue(registration.getCreatedAt().toString());
             }
             

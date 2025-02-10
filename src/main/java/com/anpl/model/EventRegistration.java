@@ -27,10 +27,6 @@ public class EventRegistration {
     @Column(name = "registration_status")
     private RegistrationStatus registrationStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status")
-    private PaymentStatus paymentStatus;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -52,6 +48,6 @@ public class EventRegistration {
     }
 
     private String generateRegistrationNumber() {
-        return "REG" + System.currentTimeMillis() + id;
+        return "REG" + System.currentTimeMillis();
     }
 } 

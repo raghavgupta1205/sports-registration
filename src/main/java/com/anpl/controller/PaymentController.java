@@ -29,4 +29,11 @@ public class PaymentController {
         paymentService.verifyPayment(request);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    @GetMapping("/{registrationId}/latest")
+    public ResponseEntity<ApiResponse<PaymentResponse>> getLatestPayment(
+            @PathVariable Long registrationId) {
+        PaymentResponse response = paymentService.getLatestPayment(registrationId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 } 

@@ -25,6 +25,9 @@ public class Payment {
     @Column(name = "razorpay_payment_id")
     private String razorpayPaymentId;
 
+    @Column(name = "razorpay_signature")
+    private String razorpaySignature;
+
     @Column(name = "payment_status")
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
@@ -37,6 +40,18 @@ public class Payment {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (paymentStatus == null) {
+            paymentStatus = PaymentStatus.PENDING;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (paymentStatus == PaymentStatus.COMPLETED && paymentDate == null) {
+            paymentDate = LocalDateTime.now();
+        }
     }
 } 

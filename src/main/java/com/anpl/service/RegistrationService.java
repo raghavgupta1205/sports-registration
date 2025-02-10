@@ -25,6 +25,7 @@ import com.anpl.model.Payment;
 import com.anpl.model.PaymentStatus;
 import com.anpl.model.RegistrationStatus;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 @Service
 @Transactional
@@ -59,6 +60,14 @@ public class RegistrationService {
 
             Order order = razorpayClient.orders.create(orderRequest);
             
+            // Create payment record
+            Payment payment = new Payment();
+            payment.setRegistration(eventRegistrationRepository.getReferenceById(registration.getId()));
+            payment.setAmount(BigDecimal.valueOf(event.getPrice()));
+            payment.setRazorpayOrderId(order.get("id"));
+            payment.setPaymentStatus(PaymentStatus.PENDING);
+            paymentRepository.save(payment);
+            
             return OrderResponse.builder()
                 .orderId(order.get("id"))
                 .amount(event.getPrice().longValue())
@@ -81,7 +90,6 @@ public class RegistrationService {
                 .price(registration.getEvent().getPrice())
                 .build())
             .registrationStatus(registration.getRegistrationStatus())
-            .paymentStatus(registration.getPaymentStatus())
             .build();
     }
 
@@ -94,7 +102,7 @@ public class RegistrationService {
         );
         
         return RegistrationResponse.builder()
-            .id(registration.getId())
+            .registrationId(registration.getId())
             .eventId(registration.getEvent().getId())
             .status(registration.getRegistrationStatus().toString())
             .build();
@@ -106,7 +114,7 @@ public class RegistrationService {
         
         return registrations.stream()
             .map(reg -> RegistrationResponse.builder()
-                .id(reg.getId())
+                .registrationId(reg.getId())
                 .eventId(reg.getEvent().getId())
                 .status(reg.getRegistrationStatus().toString())
                 .build())
@@ -119,26 +127,25 @@ public class RegistrationService {
             .orElseThrow(() -> new ResourceNotFoundException("Registration not found"));
 
         try {
-            // Check if payment exists
             Optional<Payment> paymentOpt = paymentRepository.findFirstByRegistration_IdOrderByCreatedAtDesc(registrationId);
             
             if (paymentOpt.isPresent()) {
                 Payment payment = paymentOpt.get();
                 Order order = razorpayClient.orders.fetch(payment.getRazorpayOrderId());
                 
-                // If payment is successful, update status
                 if ("paid".equals(order.get("status"))) {
-                    registration.setPaymentStatus(PaymentStatus.COMPLETED);
+                    payment.setPaymentStatus(PaymentStatus.COMPLETED);
                     registration.setRegistrationStatus(RegistrationStatus.APPROVED);
+                    paymentRepository.save(payment);
                     eventRegistrationRepository.save(registration);
                 }
             }
 
             return RegistrationResponse.builder()
-                .id(registration.getId())
+                .registrationId(registration.getId())
                 .eventId(registration.getEvent().getId())
                 .status(registration.getRegistrationStatus().toString())
-                .paymentStatus(registration.getPaymentStatus().toString())
+                .paymentStatus(paymentOpt.map(p -> p.getPaymentStatus().toString()).orElse("PENDING"))
                 .build();
         } catch (RazorpayException e) {
             throw new PaymentException("Failed to check payment status: " + e.getMessage());

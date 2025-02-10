@@ -48,7 +48,6 @@ CREATE TABLE event_registrations (
     event_id BIGINT REFERENCES events(id) NOT NULL,
     registration_number VARCHAR(255) UNIQUE,
     registration_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    payment_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
@@ -56,13 +55,15 @@ CREATE TABLE event_registrations (
 -- Payments Table
 CREATE TABLE payments (
     id BIGSERIAL PRIMARY KEY,
-    registration_id BIGINT REFERENCES event_registrations(id),
+    registration_id BIGINT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     razorpay_order_id VARCHAR(255),
     razorpay_payment_id VARCHAR(255),
+    razorpay_signature VARCHAR(255),
     payment_status VARCHAR(50) NOT NULL,
     payment_date TIMESTAMP,
-    created_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (registration_id) REFERENCES event_registrations(id)
 );
 
 -- Password Reset Tokens Table
@@ -81,6 +82,9 @@ CREATE INDEX idx_registrations_user ON event_registrations(user_id);
 CREATE INDEX idx_events_active ON events(active);
 CREATE INDEX idx_event_registrations_event_id ON event_registrations(event_id);
 CREATE INDEX idx_event_registrations_user_id ON event_registrations(user_id);
+CREATE INDEX idx_registration_id ON payments(registration_id);
+CREATE INDEX idx_razorpay_order_id ON payments(razorpay_order_id);
+CREATE INDEX idx_razorpay_payment_id ON payments(razorpay_payment_id);
 
 -- Insert some sample events
 INSERT INTO events (name, description, price, year, active, registration_start_date, registration_end_date, created_at, updated_at)

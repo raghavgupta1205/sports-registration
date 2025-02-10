@@ -40,8 +40,7 @@
             <ul>
                 <li>Registration Number: <strong th:text="${registration.registrationNumber}"></strong></li>
                 <li>Event: <span th:text="${registration.event.name}"></span></li>
-                <li>Status: <span th:text="${registration.registrationStatus}"></span></li>
-                <li>Payment Status: <span th:text="${registration.paymentStatus}"></span></li>
+                <li>Status: <span th:text="${registration.registrationStatus}">PENDING</span></li>
             </ul>
             <p>Please keep this information for your records.</p>
         </div>

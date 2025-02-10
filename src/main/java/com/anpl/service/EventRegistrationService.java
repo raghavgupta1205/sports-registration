@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,32 +35,37 @@ public class EventRegistrationService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
-        // Check if user is already registered for this event
-        boolean alreadyRegistered = eventRegistrationRepository
-                .findByUserIdAndEventId(userId, eventId)
-                .isPresent();
-                
-        if (alreadyRegistered) {
+        Optional<EventRegistration> approvedRegistration = eventRegistrationRepository
+        .findByUserIdAndEventIdAndRegistrationStatus(userId, eventId, RegistrationStatus.APPROVED);
+
+        if (approvedRegistration.isPresent()){
             throw new ResourceAlreadyExistsException("Already registered for this event");
+        }
+
+        // Check if user has a successful registration for this event
+        Optional<EventRegistration> existingRegistration = eventRegistrationRepository
+                .findByUserIdAndEventIdAndRegistrationStatus(userId, eventId, RegistrationStatus.PENDING);
+        
+        if(existingRegistration.isPresent()){
+            return buildEventRegistrationResponse(existingRegistration.get());
         }
 
         EventRegistration registration = new EventRegistration();
         registration.setUser(user);
         registration.setEvent(event);
         registration.setRegistrationStatus(RegistrationStatus.PENDING);
-        registration.setPaymentStatus(PaymentStatus.PENDING);
         registration.setCreatedAt(LocalDateTime.now());
 
         EventRegistration savedRegistration = eventRegistrationRepository.save(registration);
         
         // Send registration confirmation email
-        emailService.sendEventRegistrationEmail(user, savedRegistration);
+        //emailService.sendEventRegistrationEmail(user, savedRegistration);
 
         return buildEventRegistrationResponse(savedRegistration);
     }
 
     public List<EventRegistration> getUserRegistrations(Long userId) {
-        return eventRegistrationRepository.findByUserId(userId);
+        return eventRegistrationRepository.findByUserIdAndRegistrationStatusNot(userId, RegistrationStatus.FAILED);
     }
 
     public EventRegistrationResponse getRegistrationById(Long registrationId) {
@@ -94,8 +100,13 @@ public class EventRegistrationService {
                 .tshirtSize(user.getTshirtSize())
                 .eventYear(registration.getEvent().getYear())
                 .registrationStatus(registration.getRegistrationStatus())
-                .paymentStatus(registration.getPaymentStatus())
                 .registrationDate(registration.getCreatedAt())
+                .event(EventRegistrationResponse.EventResponse.builder()
+                    .id(registration.getEvent().getId())
+                    .name(registration.getEvent().getName())
+                    .description(registration.getEvent().getDescription())
+                    .price(registration.getEvent().getPrice())
+                    .build())
                 .build();
     }
 

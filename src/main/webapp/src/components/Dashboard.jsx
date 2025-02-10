@@ -58,11 +58,25 @@ const Dashboard = () => {
 
   const handleCheckPayment = async (registrationId) => {
     try {
-      await api.get(`/registrations/${registrationId}/status`);
+      // Get the latest payment details for this registration
+      const paymentResponse = await api.get(`/payments/${registrationId}/latest`);
+      const payment = paymentResponse.data.data;
+      
+      if (payment && payment.razorpayOrderId) {
+        // Verify the payment
+        await api.post('/payments/verify', {
+          registrationId: registrationId,
+          orderId: payment.razorpayOrderId,
+          paymentId: payment.razorpayPaymentId,
+          signature: payment.razorpaySignature
+        });
+      }
+      
       // Refresh registrations after checking status
       const registrationsResponse = await api.get('/registrations/user');
       setRegistrations(registrationsResponse.data.data || []);
     } catch (err) {
+      console.error('Payment verification failed:', err);
       setError('Failed to check payment status');
     }
   };
@@ -93,11 +107,31 @@ const Dashboard = () => {
               registrationId: registrationId
             });
             
-            // Update registered events list
-            setRegistrations(prev => [...prev, { ...event, id: event.id, status: 'PAID' }]);
+            // Get latest payment status
+            const paymentResponse = await api.get(`/payments/${registrationId}/latest`);
+            const payment = paymentResponse.data.data;
+            
+            // Update registrations with correct status
+            const registrationsResponse = await api.get('/registrations/user');
+            setRegistrations(registrationsResponse.data.data || []);
             
           } catch (err) {
+            console.error('Payment verification failed:', err);
             setError('Payment verification failed');
+            // Refresh registrations to get latest status even after failure
+            const registrationsResponse = await api.get('/registrations/user');
+            setRegistrations(registrationsResponse.data.data || []);
+          }
+        },
+        modal: {
+          ondismiss: async () => {
+            // Check payment status when modal is closed
+            try {
+              const registrationsResponse = await api.get('/registrations/user');
+              setRegistrations(registrationsResponse.data.data || []);
+            } catch (err) {
+              console.error('Failed to refresh registrations:', err);
+            }
           }
         },
         prefill: {
@@ -114,7 +148,15 @@ const Dashboard = () => {
       razorpay.open();
 
     } catch (err) {
+      console.error('Failed to initiate registration:', err);
       setError('Failed to initiate registration');
+      // Refresh registrations to get latest status
+      try {
+        const registrationsResponse = await api.get('/registrations/user');
+        setRegistrations(registrationsResponse.data.data || []);
+      } catch (refreshErr) {
+        console.error('Failed to refresh registrations:', refreshErr);
+      }
     }
   };
 
@@ -146,10 +188,10 @@ const Dashboard = () => {
         <Grid container spacing={3}>
           {events && events.length > 0 ? (
             events.map((event) => (
-              <Grid item xs={12} md={6} key={event.id}>
-                <EventCard 
+              <Grid item xs={12} sm={6} md={4} key={event.id}>
+                <EventCard
                   event={event}
-                  registrationStatus={getRegistrationStatus(event.id)}
+                  registrationStatus={{ data: registrations }}
                   onRegister={handleRegister}
                   onCheckPayment={handleCheckPayment}
                 />
@@ -163,27 +205,6 @@ const Dashboard = () => {
             </Grid>
           )}
         </Grid>
-
-        {registrations.length > 0 && (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" gutterBottom>
-              Your Registrations
-            </Typography>
-            <Grid container spacing={3}>
-              {events
-                .filter(event => registrations.some(reg => reg.eventId === event.id))
-                .map(event => (
-                  <Grid item xs={12} md={6} key={event.id}>
-                    <EventCard 
-                      event={event}
-                      registrationStatus={getRegistrationStatus(event.id)}
-                      onCheckPayment={handleCheckPayment}
-                    />
-                  </Grid>
-                ))}
-            </Grid>
-          </Box>
-        )}
       </Box>
     </Container>
   );

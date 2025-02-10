@@ -1,0 +1,10 @@
+export { default as Home } from './Home';
+export { default as Login } from './Login';
+export { default as Register } from './Register';
+export { default as Dashboard } from './Dashboard';
+export { default as EventCard } from './EventCard';
+export { default as PrivateRoute } from './PrivateRoute';
+export { default as Layout } from './Layout';
+export { default as Header } from './Header';
+export { default as Footer } from './Footer';
+export { default as PageLayout } from './PageLayout'; 

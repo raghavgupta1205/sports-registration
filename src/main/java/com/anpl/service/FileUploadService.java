@@ -1,0 +1,89 @@
+package com.anpl.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class FileUploadService {
+
+    @Value("${file.upload.directory:./uploads}")
+    private String uploadDirectory;
+
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final String[] ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"};
+
+    public String uploadFile(MultipartFile file, String category) throws IOException {
+        // Validate file
+        validateFile(file);
+
+        // Create upload directory if not exists
+        Path uploadPath = Paths.get(uploadDirectory, category);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // Generate unique filename
+        String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String newFilename = UUID.randomUUID().toString() + extension;
+
+        // Save file
+        Path filePath = uploadPath.resolve(newFilename);
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        log.info("File uploaded successfully: {}", filePath);
+
+        // Return relative path
+        return category + "/" + newFilename;
+    }
+
+    public void deleteFile(String filePath) throws IOException {
+        Path path = Paths.get(uploadDirectory, filePath);
+        if (Files.exists(path)) {
+            Files.delete(path);
+            log.info("File deleted successfully: {}", filePath);
+        } else {
+            log.warn("File not found for deletion: {}", filePath);
+        }
+    }
+
+    private void validateFile(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("File size exceeds maximum limit of 5MB");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            throw new IllegalArgumentException("Invalid filename");
+        }
+
+        boolean validExtension = false;
+        for (String ext : ALLOWED_EXTENSIONS) {
+            if (filename.toLowerCase().endsWith(ext)) {
+                validExtension = true;
+                break;
+            }
+        }
+
+        if (!validExtension) {
+            throw new IllegalArgumentException("File type not allowed. Allowed types: jpg, jpeg, png, pdf");
+        }
+    }
+}
+

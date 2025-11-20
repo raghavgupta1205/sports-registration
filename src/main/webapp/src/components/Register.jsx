@@ -30,7 +30,6 @@ function Register() {
     phoneNumber: '',
     block: '',
     houseNumber: '',
-    tshirtSize: '',
     aadhaarNumber: ''
   });
   const [errors, setErrors] = useState({});
@@ -232,31 +231,6 @@ function Register() {
             error={!!errors.houseNumber}
             helperText={errors.houseNumber}
           />
-          <FormControl 
-            fullWidth 
-            margin="normal" 
-            required
-            error={!!errors.tshirtSize}
-          >
-            <InputLabel id="tshirt-size-label">T-Shirt Size</InputLabel>
-            <Select
-              labelId="tshirt-size-label"
-              id="tshirtSize"
-              name="tshirtSize"
-              value={formData.tshirtSize}
-              label="T-Shirt Size"
-              onChange={handleChange}
-            >
-              <MenuItem value="S">Small</MenuItem>
-              <MenuItem value="M">Medium</MenuItem>
-              <MenuItem value="L">Large</MenuItem>
-              <MenuItem value="XL">Extra Large</MenuItem>
-              <MenuItem value="XXL">Double XL</MenuItem>
-            </Select>
-            {errors.tshirtSize && (
-              <FormHelperText>{errors.tshirtSize}</FormHelperText>
-            )}
-          </FormControl>
           <TextField
             margin="normal"
             required

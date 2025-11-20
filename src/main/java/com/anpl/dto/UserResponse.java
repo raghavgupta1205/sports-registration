@@ -13,7 +13,6 @@ public class UserResponse {
     private String phoneNumber;
     private String registrationNumber;
     private String block;
-    private String tshirtSize;
     private String token;
     private String role;
 

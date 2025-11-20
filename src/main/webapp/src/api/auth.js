@@ -9,8 +9,7 @@ export const register = async (userData) => {
       phoneNumber: userData.phoneNumber,
       block: userData.block,
       houseNumber: userData.houseNumber,
-      aadhaarNumber: userData.aadhaarNumber,
-      tshirtSize: userData.tshirtSize
+      aadhaarNumber: userData.aadhaarNumber
     });
     return response.data;
   } catch (error) {

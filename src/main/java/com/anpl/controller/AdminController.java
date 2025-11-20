@@ -1,9 +1,13 @@
 package com.anpl.controller;
 
 import com.anpl.dto.ApiResponse;
+import com.anpl.dto.EventRequest;
 import com.anpl.dto.EventRegistrationResponse;
+import com.anpl.model.Event;
 import com.anpl.model.RegistrationStatus;
 import com.anpl.service.AdminService;
+import com.anpl.service.EventService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +22,7 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class AdminController {
     private final AdminService adminService;
+    private final EventService eventService;
 
     @GetMapping("/registrations")
     public ResponseEntity<ApiResponse<List<EventRegistrationResponse>>> getAllRegistrations() {
@@ -40,5 +45,44 @@ public class AdminController {
                 .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 .header("Content-Disposition", "attachment; filename=registrations.xlsx")
                 .body(excelFile);
+    }
+
+    // Event Management Endpoints
+    @GetMapping("/events")
+    public ResponseEntity<ApiResponse<List<Event>>> getAllEvents() {
+        List<Event> events = eventService.getAllEvents();
+        return ResponseEntity.ok(ApiResponse.success(events));
+    }
+
+    @GetMapping("/events/{id}")
+    public ResponseEntity<ApiResponse<Event>> getEventById(@PathVariable Long id) {
+        Event event = eventService.getEventById(id);
+        return ResponseEntity.ok(ApiResponse.success(event));
+    }
+
+    @PostMapping("/events")
+    public ResponseEntity<ApiResponse<Event>> createEvent(@Valid @RequestBody EventRequest request) {
+        Event event = eventService.createEvent(request);
+        return ResponseEntity.ok(ApiResponse.success(event));
+    }
+
+    @PutMapping("/events/{id}")
+    public ResponseEntity<ApiResponse<Event>> updateEvent(
+            @PathVariable Long id,
+            @Valid @RequestBody EventRequest request) {
+        Event event = eventService.updateEvent(id, request);
+        return ResponseEntity.ok(ApiResponse.success(event));
+    }
+
+    @DeleteMapping("/events/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteEvent(@PathVariable Long id) {
+        eventService.deleteEvent(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PatchMapping("/events/{id}/toggle-status")
+    public ResponseEntity<ApiResponse<Event>> toggleEventStatus(@PathVariable Long id) {
+        Event event = eventService.toggleEventStatus(id);
+        return ResponseEntity.ok(ApiResponse.success(event));
     }
 } 

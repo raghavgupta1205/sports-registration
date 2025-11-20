@@ -47,7 +47,6 @@ public class UserService {
         user.setAadhaarNumber(request.getAadhaarNumber());
         user.setBlock(request.getBlock());
         user.setHouseNumber(request.getHouseNumber());
-        user.setTshirtSize(request.getTshirtSize());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(UserRole.USER);
         user.setRegistrationNumber(generateRegistrationNumber());
@@ -65,7 +64,6 @@ public class UserService {
                 .phoneNumber(savedUser.getPhoneNumber())
                 .registrationNumber(savedUser.getRegistrationNumber())
                 .block(savedUser.getBlock())
-                .tshirtSize(savedUser.getTshirtSize())
                 .token(token)
                 .role(savedUser.getRole().toString())
                 .build();
@@ -126,7 +124,6 @@ public class UserService {
                 .phoneNumber(user.getPhoneNumber())
                 .registrationNumber(user.getRegistrationNumber())
                 .block(user.getBlock())
-                .tshirtSize(user.getTshirtSize())
                 .token(token)
                 .role(user.getRole().toString())
                 .build();

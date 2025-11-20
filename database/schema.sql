@@ -10,7 +10,6 @@ CREATE TABLE users (
     registration_number VARCHAR(50) UNIQUE NOT NULL,
     block VARCHAR(50) NOT NULL,
     house_number VARCHAR(50) NOT NULL,
-    tshirt_size VARCHAR(10) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'USER',
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
@@ -89,9 +88,11 @@ CREATE INDEX idx_razorpay_payment_id ON payments(razorpay_payment_id);
 -- Insert some sample events
 INSERT INTO events (name, description, price, year, active, registration_start_date, registration_end_date, created_at, updated_at)
 VALUES 
-    ('Cricket Tournament 2024', 'Annual cricket tournament featuring teams from all blocks. Join us for an exciting competition!', 500.00, 2024, true, 
+    ('Cricket Tournament 2025', 'Annual cricket tournament featuring teams from all blocks. Join us for an exciting competition! Test your batting, bowling, and fielding skills in this premier cricket event.', 500.00, 2025, true, 
      NOW(), NOW() + INTERVAL '30 days', NOW(), NOW()),
-    ('Football League 2024', 'Inter-block football championship. Show your skills and represent your block!', 400.00, 2024, true,
+    ('Badminton Championship 2025', 'Premier badminton championship open to all residents. Singles and doubles categories available. Show your agility and precision in this fast-paced sport!', 400.00, 2025, true,
      NOW(), NOW() + INTERVAL '30 days', NOW(), NOW()),
+    ('Football League 2024', 'Inter-block football championship. Show your skills and represent your block!', 400.00, 2024, false,
+     NOW() - INTERVAL '60 days', NOW() - INTERVAL '30 days', NOW() - INTERVAL '60 days', NOW() - INTERVAL '60 days'),
     ('Volleyball Tournament 2023', 'Past volleyball tournament.', 300.00, 2023, false,
      NOW() - INTERVAL '1 year', NOW() - INTERVAL '335 days', NOW() - INTERVAL '1 year', NOW() - INTERVAL '1 year'); 

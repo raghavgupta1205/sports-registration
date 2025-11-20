@@ -39,7 +39,6 @@ public class AuthService {
         user.setDateOfBirth(request.getDateOfBirth());
         user.setBlock(request.getBlock());
         user.setHouseNumber(request.getHouseNumber());
-        user.setTshirtSize(request.getTshirtSize());
         user.setAadhaarNumber(request.getAadhaarNumber());
         user.setRole(UserRole.USER);
         user.setRegistrationNumber(registrationNumberGenerator.generate());

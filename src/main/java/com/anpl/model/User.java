@@ -40,9 +40,6 @@ public class User {
     @Column(name = "house_number", nullable = false)
     private String houseNumber;
 
-    @Column(name = "tshirt_size", nullable = false)
-    private String tshirtSize;
-
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private UserRole role = UserRole.USER;

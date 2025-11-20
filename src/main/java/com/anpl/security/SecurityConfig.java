@@ -41,8 +41,10 @@ public class SecurityConfig {
                     "/*.json",
                     "/assets/**",
                     "/api/auth/**",
+                    "/api/events/**",
                     "/api/registrations/**",
-                    "/api/payments/**"
+                    "/api/payments/**",
+                    "/api/cricket-registrations/upload/**"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()

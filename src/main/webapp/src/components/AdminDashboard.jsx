@@ -188,7 +188,6 @@ function AdminDashboard() {
                       <TableCell>Name</TableCell>
                       <TableCell>Contact</TableCell>
                       <TableCell>Block</TableCell>
-                      <TableCell>T-Shirt</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Payment</TableCell>
                       <TableCell>Actions</TableCell>
@@ -204,7 +203,6 @@ function AdminDashboard() {
                           {reg.user.phoneNumber}
                         </TableCell>
                         <TableCell>{reg.user.block}</TableCell>
-                        <TableCell>{reg.user.tshirtSize}</TableCell>
                         <TableCell>
                           <Chip
                             label={reg.registrationStatus}

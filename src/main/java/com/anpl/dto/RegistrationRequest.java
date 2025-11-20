@@ -33,9 +33,6 @@ public class RegistrationRequest {
     @Pattern(regexp = "^\\d{12}$", message = "Aadhaar number must be exactly 12 digits")
     private String aadhaarNumber;
 
-    @NotBlank(message = "T-shirt size is required")
-    private String tshirtSize;
-
     @NotBlank(message = "Password is required")
     @Pattern(regexp = "^.{6,}$", message = "Password must be at least 6 characters")
     private String password;

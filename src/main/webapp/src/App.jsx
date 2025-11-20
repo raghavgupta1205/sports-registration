@@ -4,7 +4,8 @@ import {
   Home, 
   Login, 
   Register, 
-  Dashboard, 
+  Dashboard,
+  CricketRegistration,
   PrivateRoute 
 } from './components';
 import PageLayout from './components/PageLayout';
@@ -21,6 +22,14 @@ function App() {
           element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/cricket-registration/:eventId"
+          element={
+            <PrivateRoute>
+              <CricketRegistration />
             </PrivateRoute>
           }
         />

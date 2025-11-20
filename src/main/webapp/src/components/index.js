@@ -3,6 +3,7 @@ export { default as Login } from './Login';
 export { default as Register } from './Register';
 export { default as Dashboard } from './Dashboard';
 export { default as EventCard } from './EventCard';
+export { default as CricketRegistration } from './CricketRegistration';
 export { default as PrivateRoute } from './PrivateRoute';
 export { default as Layout } from './Layout';
 export { default as Header } from './Header';

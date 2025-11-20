@@ -14,7 +14,6 @@ public class EventRegistrationResponse {
     private String email;
     private String phoneNumber;
     private String block;
-    private String tshirtSize;
     private Integer eventYear;
     private RegistrationStatus registrationStatus;
     private LocalDateTime registrationDate;

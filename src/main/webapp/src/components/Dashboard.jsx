@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
@@ -16,6 +17,7 @@ import api from '../api/axios';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [registrations, setRegistrations] = useState([]);
@@ -83,6 +85,14 @@ const Dashboard = () => {
 
   const handleRegister = async (event) => {
     try {
+        // CHECK IF IT'S A CRICKET EVENT - REDIRECT TO CRICKET REGISTRATION FORM
+      if (event.name && event.name.toLowerCase().includes('cricket')) {
+        console.log('Cricket event detected - redirecting to cricket registration');
+        navigate(`/cricket-registration/${event.id}`);
+        return;
+      }
+
+      // For non-cricket events, proceed with normal payment flow
       // Create registration order
       const orderResponse = await api.post('/registrations/order', {
         eventId: event.id
@@ -91,7 +101,7 @@ const Dashboard = () => {
 
       // Initialize Razorpay
       const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+        key: "rzp_test_RgO20QqKKlOShG", //rzp_test_RgO20QqKKlOShG
         amount: amount,
         currency: "INR",
         name: "ANPL Sports",

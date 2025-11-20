@@ -42,10 +42,9 @@ public class AdminService {
             headerRow.createCell(2).setCellValue("Email");
             headerRow.createCell(3).setCellValue("Phone");
             headerRow.createCell(4).setCellValue("Block");
-            headerRow.createCell(5).setCellValue("T-Shirt Size");
-            headerRow.createCell(6).setCellValue("Registration Status");
-            headerRow.createCell(7).setCellValue("Payment Status");
-            headerRow.createCell(8).setCellValue("Registration Date");
+            headerRow.createCell(5).setCellValue("Registration Status");
+            headerRow.createCell(6).setCellValue("Payment Status");
+            headerRow.createCell(7).setCellValue("Registration Date");
             
             // Fill data rows
             List<EventRegistration> registrations = registrationRepository.findAll();
@@ -58,13 +57,12 @@ public class AdminService {
                 row.createCell(2).setCellValue(user.getEmail());
                 row.createCell(3).setCellValue(user.getPhoneNumber());
                 row.createCell(4).setCellValue(user.getBlock());
-                row.createCell(5).setCellValue(user.getTshirtSize());
-                row.createCell(6).setCellValue(registration.getRegistrationStatus().toString());
-                row.createCell(8).setCellValue(registration.getCreatedAt().toString());
+                row.createCell(5).setCellValue(registration.getRegistrationStatus().toString());
+                row.createCell(7).setCellValue(registration.getCreatedAt().toString());
             }
             
             // Auto-size columns
-            for (int i = 0; i < 9; i++) {
+            for (int i = 0; i < 8; i++) {
                 sheet.autoSizeColumn(i);
             }
             

@@ -97,7 +97,6 @@ public class EventRegistrationService {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .block(user.getBlock())
-                .tshirtSize(user.getTshirtSize())
                 .eventYear(registration.getEvent().getYear())
                 .registrationStatus(registration.getRegistrationStatus())
                 .registrationDate(registration.getCreatedAt())

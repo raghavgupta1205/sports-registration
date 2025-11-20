@@ -40,8 +40,4 @@ public class UserRegistrationRequest {
     @NotBlank(message = "Aadhaar number is required")
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be 12 digits")
     private String aadhaarNumber;
-
-    @NotBlank(message = "T-shirt size is required")
-    @Pattern(regexp = "^(S|M|L|XL|XXL)$", message = "Invalid T-shirt size")
-    private String tshirtSize;
 } 

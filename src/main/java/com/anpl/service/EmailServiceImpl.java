@@ -46,10 +46,10 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendPasswordResetEmail(User user, String resetToken) {
+    public void sendPasswordResetEmail(User user, String resetUrl) {
         Context context = new Context();
         context.setVariable("user", user);
-        context.setVariable("resetToken", resetToken);
+        context.setVariable("resetUrl", resetUrl);
         String content = templateEngine.process("password-reset", context);
         sendEmail(user.getEmail(), "ANPL Password Reset Request", content);
     }

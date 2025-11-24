@@ -6,7 +6,9 @@ import {
   Register, 
   Dashboard,
   CricketRegistration,
-  PrivateRoute 
+  PrivateRoute,
+  ForgotPassword,
+  ResetPassword
 } from './components';
 import PageLayout from './components/PageLayout';
 
@@ -17,6 +19,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/dashboard"
           element={

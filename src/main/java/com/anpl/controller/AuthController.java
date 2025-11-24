@@ -7,6 +7,7 @@ import com.anpl.dto.UserResponse;
 import com.anpl.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,8 +33,10 @@ public class AuthController {
     }
 
     @PostMapping("/password-reset")
-    public ResponseEntity<ApiResponse<Void>> initiatePasswordReset(@RequestParam String email) {
-        userService.initiatePasswordReset(email);
+    public ResponseEntity<ApiResponse<Void>> initiatePasswordReset(@RequestParam String email,
+                                                                   HttpServletRequest request) {
+        String baseUrl = request.getRequestURL().toString().replace(request.getRequestURI(), "");
+        userService.initiatePasswordReset(email, baseUrl);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 

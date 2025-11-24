@@ -82,7 +82,7 @@ public class UserService {
     }
 
     @Transactional
-    public void initiatePasswordReset(String email) {
+    public void initiatePasswordReset(String email, String baseUrl) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("User not found with email: " + email));
         // Generate reset token and send email
@@ -90,7 +90,9 @@ public class UserService {
         user.setResetToken(resetToken);
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(24));
         userRepository.save(user);
-        emailService.sendPasswordResetEmail(user, resetToken);
+        String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        String resetUrl = normalizedBase + "/reset-password?token=" + resetToken;
+        emailService.sendPasswordResetEmail(user, resetUrl);
     }
 
     @Transactional

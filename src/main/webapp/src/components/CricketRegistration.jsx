@@ -39,12 +39,12 @@ const termsContent = [
   'Once a player is selected for a team, they must remain with that team for the duration of the tournament. Players who withdraw will be disqualified and the team must continue with the remaining players.',
   'If any player leaves the team for any reason after it has been formed, no new members will be allowed to replace them. The remaining players must continue to play. However, the organizers reserve the right to assign a new member to the team, and this decision cannot be opposed by any player, captain, sponsor, or team owner.',
   'The ANPL organizers’ decisions will be final. No disputes will be entertained; any player, member, or captain who argues will be disqualified, and the entire team may also face disqualification.',
-  'Registration will be accepted on a first-come, first-serve basis.',
-  'Players must upload a recent picture with a plain background.',
-  'Final eligibility is subject to approval by the ANPL Organisers.',
-  'All participants are expected to maintain sportsman spirit and discipline. The ANPL Organisers reserve full rights to disqualify any player or team in case of misbehaviour on the field or misconduct with match officials or fellow players.',
-  'Players will be categorized as per auction criteria.',
-  'By registering, every player agrees to abide by all ANPL Cricket Tournament Rules & Regulations and acknowledges that the ANPL Organisers’ decision will be final and binding in all matters related to the tournament.'
+  <>Registration will be accepted on a <strong>first-come, first-serve basis.</strong></>,
+  <>Players must upload a <strong>recent picture with a plain background.</strong></>,
+  <>Final eligibility is <strong>subject to approval</strong> by the <strong>ANPL Organisers.</strong></>,
+  <>All participants are expected to maintain <strong>sportsman spirit and discipline.</strong> The <strong>ANPL Organisers</strong> reserve full rights to disqualify any player or team in case of misbehaviour on the field or misconduct with match officials or fellow players.</>,
+  <><strong>Players</strong> will be categorized as per auction criteria.</>,
+  <>By registering, every player <strong>agrees to abide by all ANPL Cricket Tournament Rules &amp; Regulations</strong> and acknowledges that the <strong>ANPL Organisers’ decision will be final and binding</strong> in all matters related to the tournament.</>
 ];
 
 const categoryOptions = [
@@ -248,7 +248,7 @@ function CricketRegistration() {
           bowlingPace: data.bowlingPace || '',
           tshirtName: data.tshirtName || '',
           luckyNumber: data.jerseyNumber || '',
-          termsAccepted: data.termsAccepted || false
+          termsAccepted: false
         }));
       } catch (err) {
         console.debug('No existing cricket registration found', err);

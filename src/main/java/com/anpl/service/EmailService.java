@@ -8,5 +8,5 @@ public interface EmailService {
     void sendEventRegistrationEmail(User user, EventRegistration registration);
     void sendRegistrationStatusUpdateEmail(User user, EventRegistration registration);
     void sendPaymentSuccessEmail(User user);
-    void sendPasswordResetEmail(User user, String resetToken);
+    void sendPasswordResetEmail(User user, String resetUrl);
 } 

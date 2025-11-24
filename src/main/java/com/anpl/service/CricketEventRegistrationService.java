@@ -10,8 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Combined service for Cricket Event Registration
@@ -23,11 +28,13 @@ import java.util.Optional;
 @Slf4j
 public class CricketEventRegistrationService {
 
+    private static final String SPORT_CRICKET = "CRICKET";
+
     private final EventRegistrationRepository eventRegistrationRepository;
-    private final CricketRegistrationRepository cricketRegistrationRepository;
+    private final PlayerProfileRepository playerProfileRepository;
+    private final CricketPlayerSkillsRepository cricketPlayerSkillsRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
-    private final EmailService emailService;
 
     /**
      * Complete cricket event registration process
@@ -48,101 +55,100 @@ public class CricketEventRegistrationService {
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
-        if (!event.getName().toLowerCase().contains("cricket")) {
+        if (!SPORT_CRICKET.equalsIgnoreCase(event.getEventType())) {
             throw new IllegalArgumentException("This endpoint is only for cricket events");
         }
 
-        // Step 2: Check for existing approved registration
-        Optional<EventRegistration> existingApprovedReg = eventRegistrationRepository
-                .findByUserIdAndEventIdAndRegistrationStatus(
-                        user.getId(), request.getEventId(), RegistrationStatus.APPROVED);
+        validateAvailability(request, event);
 
-        if (existingApprovedReg.isPresent()) {
-            throw new ResourceAlreadyExistsException("You are already registered for this cricket event");
-        }
+        // Step 2: update user static information if provided
+        User persistedUser = refreshUserDetails(user, request);
 
-        // Step 3: Create or get event registration
+        // Step 3: Create or reuse existing event registration
         EventRegistration eventRegistration;
-        Optional<EventRegistration> existingPendingReg = eventRegistrationRepository
-                .findByUserIdAndEventIdAndRegistrationStatus(
-                        user.getId(), request.getEventId(), RegistrationStatus.PENDING);
+        Optional<EventRegistration> existingRegistrationOpt = eventRegistrationRepository
+                .findByUserIdAndEventId(persistedUser.getId(), request.getEventId());
 
-        if (existingPendingReg.isPresent()) {
-            eventRegistration = existingPendingReg.get();
-            log.info("Found existing pending registration: {}", eventRegistration.getId());
+        if (existingRegistrationOpt.isPresent()) {
+            eventRegistration = existingRegistrationOpt.get();
+            if (RegistrationStatus.APPROVED.equals(eventRegistration.getRegistrationStatus())) {
+                throw new ResourceAlreadyExistsException("You are already registered for this cricket event");
+            }
+            log.info("Reusing existing registration {} with status {}", eventRegistration.getId(),
+                    eventRegistration.getRegistrationStatus());
         } else {
             eventRegistration = new EventRegistration();
-            eventRegistration.setUser(user);
+            eventRegistration.setUser(persistedUser);
             eventRegistration.setEvent(event);
-            eventRegistration.setRegistrationStatus(RegistrationStatus.PENDING);
             eventRegistration.setCreatedAt(LocalDateTime.now());
-            eventRegistration.setUpdatedAt(LocalDateTime.now());
-            eventRegistration = eventRegistrationRepository.save(eventRegistration);
-            log.info("Created new event registration: {}", eventRegistration.getId());
+            log.info("Creating new event registration");
         }
 
-        // Step 4: Check if cricket registration already exists
-        Optional<CricketRegistration> existingCricketReg = cricketRegistrationRepository
-                .findByEventRegistrationId(eventRegistration.getId());
+        eventRegistration.setRegistrationStatus(RegistrationStatus.PENDING);
+        eventRegistration.setUpdatedAt(LocalDateTime.now());
+        eventRegistration = eventRegistrationRepository.save(eventRegistration);
 
-        if (existingCricketReg.isPresent()) {
+        // Step 4: Validate jersey number (unique per event)
+        boolean jerseyChanged = eventRegistration.getJerseyNumber() == null
+                || !eventRegistration.getJerseyNumber().equals(request.getLuckyNumber());
+        if (jerseyChanged && eventRegistrationRepository.existsByEventIdAndJerseyNumber(
+                event.getId(), request.getLuckyNumber())) {
             throw new ResourceAlreadyExistsException(
-                    "Cricket registration details already submitted. Please proceed to payment.");
+                    "Jersey number " + request.getLuckyNumber() + " is already taken for this event.");
         }
 
-        // Step 5: Validate lucky number availability
-        if (cricketRegistrationRepository.existsByLuckyNumber(request.getLuckyNumber())) {
-            throw new ResourceAlreadyExistsException(
-                    "Lucky number " + request.getLuckyNumber() + " is already taken. Please choose another.");
+        // Step 5: Upsert player profile & skills
+        PlayerProfile playerProfile = playerProfileRepository
+                .findByUserIdAndSportType(persistedUser.getId(), SPORT_CRICKET)
+                .orElseGet(() -> {
+                    PlayerProfile profile = new PlayerProfile();
+                    profile.setUser(persistedUser);
+                    profile.setSportType(SPORT_CRICKET);
+                    return profile;
+                });
+        playerProfile.setSkillLevel(request.getGameLevel());
+        playerProfile.setSportsHistory(request.getSportsHistory().trim());
+        playerProfile.setAchievements(request.getAchievements().trim());
+        playerProfile.setIsActive(true);
+        PlayerProfile savedProfile = playerProfileRepository.save(playerProfile);
+
+        CricketPlayerSkills cricketSkills = cricketPlayerSkillsRepository
+                .findByPlayerProfileId(savedProfile.getId())
+                .orElseGet(() -> {
+                    CricketPlayerSkills skills = new CricketPlayerSkills();
+                    skills.setPlayerProfile(savedProfile);
+                    return skills;
+                });
+        cricketSkills.setPlayerProfile(savedProfile);
+        applySkillData(cricketSkills, request);
+        CricketPlayerSkills savedSkills = cricketPlayerSkillsRepository.save(cricketSkills);
+
+        // Step 6: Update event registration with event-specific fields
+        eventRegistration.setTshirtName(request.getTshirtName());
+        eventRegistration.setJerseyNumber(request.getLuckyNumber());
+        eventRegistration.setRegistrationCategory(request.getRegistrationCategory());
+        eventRegistration.setAvailableAllDays(request.getAvailableAllDays());
+        if (Boolean.TRUE.equals(request.getAvailableAllDays())) {
+            eventRegistration.setUnavailableDates(null);
+        } else {
+            eventRegistration.setUnavailableDates(serializeUnavailableDates(request.getUnavailableDates()));
         }
+        eventRegistration.setTermsAccepted(Boolean.TRUE.equals(request.getTermsAccepted()));
+        if (Boolean.TRUE.equals(request.getTermsAccepted())) {
+            eventRegistration.setTermsAcceptedAt(LocalDateTime.now());
+        }
+        eventRegistration.setTeamRole(request.getCricketPreference().name());
+        eventRegistration.setUpdatedAt(LocalDateTime.now());
+        EventRegistration savedRegistration = eventRegistrationRepository.save(eventRegistration);
 
-        // Step 6: Create cricket registration with all details
-        CricketRegistration cricketRegistration = new CricketRegistration();
-        cricketRegistration.setEventRegistration(eventRegistration);
-        
-        // Personal Info
-        cricketRegistration.setGender(request.getGender());
-        cricketRegistration.setTshirtSize(request.getTshirtSize());
-        cricketRegistration.setResidentialAddress(request.getResidentialAddress());
-        cricketRegistration.setWhatsappNumber(request.getWhatsappNumber());
-        
-        // Documents
-        cricketRegistration.setAadhaarFrontPhoto(request.getAadhaarFrontPhoto());
-        cricketRegistration.setAadhaarBackPhoto(request.getAadhaarBackPhoto());
-        cricketRegistration.setPlayerPhoto(request.getPlayerPhoto());
-        
-        // Cricket Skills
-        cricketRegistration.setGameLevel(request.getGameLevel());
-        cricketRegistration.setCricketPreference(request.getCricketPreference());
-        cricketRegistration.setIsWicketKeeper(request.getIsWicketKeeper());
-        cricketRegistration.setHasCaptainExperience(request.getHasCaptainExperience());
-        cricketRegistration.setBattingHand(request.getBattingHand());
-        cricketRegistration.setBowlingArm(request.getBowlingArm());
-        cricketRegistration.setBowlingPace(request.getBowlingPace());
-        
-        // T-Shirt Details
-        cricketRegistration.setTshirtName(request.getTshirtName());
-        cricketRegistration.setLuckyNumber(request.getLuckyNumber());
-        
-        // Terms
-        cricketRegistration.setTermsAccepted(request.getTermsAccepted());
-        
-        cricketRegistration.setCreatedAt(LocalDateTime.now());
-        cricketRegistration.setUpdatedAt(LocalDateTime.now());
+        log.info("Cricket registration completed successfully. Event Reg ID: {}", savedRegistration.getId());
 
-        CricketRegistration savedCricketReg = cricketRegistrationRepository.save(cricketRegistration);
-        
-        log.info("Cricket registration completed successfully. Event Reg ID: {}, Cricket Reg ID: {}", 
-                 eventRegistration.getId(), savedCricketReg.getId());
-
-        // Step 7: Send confirmation email (optional)
-        // emailService.sendCricketRegistrationConfirmation(user, eventRegistration, savedCricketReg);
-
-        // Step 8: Return response indicating ready for payment
+        // Return response indicating ready for payment
         return CricketEventRegistrationResponse.builder()
-                .eventRegistrationId(eventRegistration.getId())
-                .cricketRegistrationId(savedCricketReg.getId())
-                .registrationNumber(user.getRegistrationNumber())
+                .eventRegistrationId(savedRegistration.getId())
+                .playerProfileId(savedProfile.getId())
+                .cricketProfileId(savedSkills.getId())
+                .registrationNumber(persistedUser.getRegistrationNumber())
                 .eventName(event.getName())
                 .eventPrice(event.getPrice())
                 .readyForPayment(true)
@@ -156,7 +162,20 @@ public class CricketEventRegistrationService {
      */
     @Transactional(readOnly = true)
     public boolean isCricketRegistrationComplete(Long eventRegistrationId) {
-        return cricketRegistrationRepository.existsByEventRegistrationId(eventRegistrationId);
+        return eventRegistrationRepository.findById(eventRegistrationId)
+                .map(reg -> {
+                    if (!Boolean.TRUE.equals(reg.getTermsAccepted())) {
+                        return false;
+                    }
+                    PlayerProfile profile = playerProfileRepository
+                            .findByUserIdAndSportType(reg.getUser().getId(), SPORT_CRICKET)
+                            .orElse(null);
+                    if (profile == null) {
+                        return false;
+                    }
+                    return cricketPlayerSkillsRepository.findByPlayerProfileId(profile.getId()).isPresent();
+                })
+                .orElse(false);
     }
 
     /**
@@ -164,38 +183,305 @@ public class CricketEventRegistrationService {
      */
     @Transactional(readOnly = true)
     public CricketRegistrationResponse getCricketDetailsByEventRegistration(Long eventRegistrationId) {
-        CricketRegistration cricketReg = cricketRegistrationRepository
-                .findByEventRegistrationId(eventRegistrationId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Cricket registration not found. Please complete cricket registration before payment."));
+        EventRegistration registration = eventRegistrationRepository.findById(eventRegistrationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event registration not found"));
 
-        return buildCricketResponse(cricketReg);
+        if (!SPORT_CRICKET.equalsIgnoreCase(registration.getEvent().getEventType())) {
+            throw new IllegalArgumentException("Registration does not belong to a cricket event");
+        }
+
+        PlayerProfile profile = playerProfileRepository
+                .findByUserIdAndSportType(registration.getUser().getId(), SPORT_CRICKET)
+                .orElse(null);
+
+        CricketPlayerSkills skills = (profile != null)
+                ? cricketPlayerSkillsRepository.findByPlayerProfileId(profile.getId()).orElse(null)
+                : null;
+
+        return buildCricketResponse(registration.getUser(), registration, profile, skills);
     }
 
-    private CricketRegistrationResponse buildCricketResponse(CricketRegistration reg) {
+    @Transactional(readOnly = true)
+    public CricketRegistrationResponse getCricketDetailsForEvent(User user, Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        if (!SPORT_CRICKET.equalsIgnoreCase(event.getEventType())) {
+            throw new IllegalArgumentException("This endpoint is only for cricket events");
+        }
+
+        EventRegistration registration = eventRegistrationRepository
+                .findByUserIdAndEventId(user.getId(), eventId)
+                .orElseGet(() -> eventRegistrationRepository
+                        .findFirstByUserIdAndEvent_EventTypeOrderByUpdatedAtDesc(user.getId(), SPORT_CRICKET)
+                        .orElse(null));
+
+        PlayerProfile profile = playerProfileRepository
+                .findByUserIdAndSportType(user.getId(), SPORT_CRICKET)
+                .orElse(null);
+
+        CricketPlayerSkills skills = (profile != null)
+                ? cricketPlayerSkillsRepository.findByPlayerProfileId(profile.getId()).orElse(null)
+                : null;
+
+        return buildCricketResponse(user, registration, profile, skills);
+    }
+
+    private CricketRegistrationResponse buildCricketResponse(User user,
+                                                             EventRegistration registration,
+                                                             PlayerProfile profile,
+                                                             CricketPlayerSkills skills) {
         return CricketRegistrationResponse.builder()
-                .id(reg.getId())
-                .eventRegistrationId(reg.getEventRegistration().getId())
-                .gender(reg.getGender())
-                .tshirtSize(reg.getTshirtSize())
-                .residentialAddress(reg.getResidentialAddress())
-                .whatsappNumber(reg.getWhatsappNumber())
-                .aadhaarFrontPhoto(reg.getAadhaarFrontPhoto())
-                .aadhaarBackPhoto(reg.getAadhaarBackPhoto())
-                .playerPhoto(reg.getPlayerPhoto())
-                .gameLevel(reg.getGameLevel())
-                .cricketPreference(reg.getCricketPreference())
-                .isWicketKeeper(reg.getIsWicketKeeper())
-                .hasCaptainExperience(reg.getHasCaptainExperience())
-                .battingHand(reg.getBattingHand())
-                .bowlingArm(reg.getBowlingArm())
-                .bowlingPace(reg.getBowlingPace())
-                .tshirtName(reg.getTshirtName())
-                .luckyNumber(reg.getLuckyNumber())
-                .termsAccepted(reg.getTermsAccepted())
-                .createdAt(reg.getCreatedAt())
-                .updatedAt(reg.getUpdatedAt())
+                .eventRegistrationId(registration != null ? registration.getId() : null)
+                .playerProfileId(profile != null ? profile.getId() : null)
+                .cricketProfileId(skills != null ? skills.getId() : null)
+                .gender(user.getGender())
+                .preferredTshirtSize(user.getPreferredTshirtSize())
+                .residentialAddress(user.getResidentialAddress())
+                .whatsappNumber(user.getWhatsappNumber())
+                .aadhaarFrontPhoto(user.getAadhaarFrontPhoto())
+                .aadhaarBackPhoto(user.getAadhaarBackPhoto())
+                .playerPhoto(user.getPlayerPhoto())
+                .registrationCategory(registration != null ? registration.getRegistrationCategory() : null)
+                .skillLevel(profile != null ? profile.getSkillLevel() : null)
+                .sportsHistory(profile != null ? profile.getSportsHistory() : null)
+                .achievements(profile != null ? profile.getAchievements() : null)
+                .primaryRole(skills != null ? skills.getPrimaryRole() : null)
+                .isWicketKeeper(skills != null ? skills.getIsWicketKeeper() : null)
+                .hasCaptainExperience(skills != null ? skills.getHasCaptaincyExperience() : null)
+                .battingStyle(skills != null ? skills.getBattingStyle() : null)
+                .battingHand(skills != null ? mapStyleToHand(skills.getBattingStyle()) : null)
+                .battingPosition(skills != null ? skills.getBattingPosition() : null)
+                .bowlingStyle(skills != null ? skills.getBowlingStyle() : null)
+                .bowlingType(skills != null ? skills.getBowlingType() : null)
+                .bowlingPace(skills != null ? mapTypeToPace(skills.getBowlingType()) : null)
+                .bowlingArm(skills != null ? skills.getBowlingArm() : null)
+                .preferredFieldingPosition(skills != null ? skills.getPreferredFieldingPosition() : null)
+                .tshirtName(registration != null ? registration.getTshirtName() : null)
+                .jerseyNumber(registration != null ? registration.getJerseyNumber() : null)
+                .cricketPreference(resolveCricketPreference(
+                        registration != null ? registration.getTeamRole() : null,
+                        skills != null ? skills.getPrimaryRole() : null))
+                .availableAllDays(registration == null ? null : Boolean.TRUE.equals(registration.getAvailableAllDays()))
+                .unavailableDates(registration != null
+                        ? parseUnavailableDates(registration.getUnavailableDates())
+                        : Collections.emptyList())
+                .termsAccepted(registration != null ? registration.getTermsAccepted() : null)
+                .termsAcceptedAt(registration != null ? registration.getTermsAcceptedAt() : null)
+                .profileCreatedAt(profile != null ? profile.getCreatedAt() : null)
+                .profileUpdatedAt(profile != null ? profile.getUpdatedAt() : null)
                 .build();
+    }
+
+    private void applySkillData(CricketPlayerSkills skills, CricketEventRegistrationRequest request) {
+        skills.setPrimaryRole(mapRole(request.getCricketPreference()));
+        skills.setBattingStyle(mapBattingStyle(request.getBattingHand()));
+        skills.setBowlingStyle(mapBowlingStyle(request.getBowlingArm()));
+        skills.setBowlingType(mapBowlingType(request.getBowlingPace()));
+        skills.setBowlingArm(request.getBowlingArm());
+        skills.setBattingPosition(null);
+        skills.setIsWicketKeeper(request.getIsWicketKeeper());
+        skills.setHasCaptaincyExperience(request.getHasCaptainExperience());
+    }
+
+    private CricketRole mapRole(CricketPreference preference) {
+        if (preference == null) {
+            return CricketRole.ALL_ROUNDER;
+        }
+        return switch (preference) {
+            case BATTING -> CricketRole.BATSMAN;
+            case BOWLING -> CricketRole.BOWLER;
+            case ALL_ROUNDER -> CricketRole.ALL_ROUNDER;
+            case WICKET_KEEPER -> CricketRole.WICKET_KEEPER;
+        };
+    }
+
+    private BattingStyle mapBattingStyle(HandPreference handPreference) {
+        if (handPreference == null) {
+            return BattingStyle.RIGHT_HANDED;
+        }
+        return switch (handPreference) {
+            case LEFT -> BattingStyle.LEFT_HANDED;
+            case RIGHT -> BattingStyle.RIGHT_HANDED;
+            case BOTH -> BattingStyle.SWITCH_HITTER;
+            default -> BattingStyle.RIGHT_HANDED;
+        };
+    }
+
+    private BowlingStyle mapBowlingStyle(HandPreference handPreference) {
+        if (handPreference == null) {
+            return BowlingStyle.RIGHT_ARM;
+        }
+        return switch (handPreference) {
+            case LEFT -> BowlingStyle.LEFT_ARM;
+            case RIGHT, BOTH -> BowlingStyle.RIGHT_ARM;
+            default -> BowlingStyle.NONE;
+        };
+    }
+
+    private BowlingType mapBowlingType(BowlingPace pace) {
+        if (pace == null) {
+            return BowlingType.NONE;
+        }
+        return switch (pace) {
+            case FAST -> BowlingType.FAST;
+            case FAST_MEDIUM -> BowlingType.FAST_MEDIUM;
+            case MEDIUM -> BowlingType.MEDIUM;
+            case MEDIUM_SLOW -> BowlingType.MEDIUM_SLOW;
+            case SLOW -> BowlingType.SLOW;
+            case LEG_SPIN -> BowlingType.LEG_SPIN;
+            case OFF_SPIN -> BowlingType.OFF_SPIN;
+            case SPIN -> BowlingType.SPIN;
+            case NOT_APPLICABLE -> BowlingType.NONE;
+        };
+    }
+
+    private HandPreference mapStyleToHand(BattingStyle style) {
+        if (style == null) {
+            return HandPreference.RIGHT;
+        }
+        return switch (style) {
+            case LEFT_HANDED -> HandPreference.LEFT;
+            case RIGHT_HANDED -> HandPreference.RIGHT;
+            case SWITCH_HITTER -> HandPreference.BOTH;
+        };
+    }
+
+    private BowlingPace mapTypeToPace(BowlingType type) {
+        if (type == null) {
+            return BowlingPace.NOT_APPLICABLE;
+        }
+        return switch (type) {
+            case FAST -> BowlingPace.FAST;
+            case FAST_MEDIUM -> BowlingPace.FAST_MEDIUM;
+            case MEDIUM -> BowlingPace.MEDIUM;
+            case MEDIUM_SLOW -> BowlingPace.MEDIUM_SLOW;
+            case SLOW -> BowlingPace.SLOW;
+            case LEG_SPIN -> BowlingPace.LEG_SPIN;
+            case OFF_SPIN -> BowlingPace.OFF_SPIN;
+            case SPIN, CHINAMAN -> BowlingPace.SPIN;
+            case NONE -> BowlingPace.NOT_APPLICABLE;
+        };
+    }
+
+    private void validateAvailability(CricketEventRegistrationRequest request, Event event) {
+        if (request.getAvailableAllDays() == null) {
+            throw new IllegalArgumentException("Availability selection is required");
+        }
+        List<String> eventDateStrings = getEventDateStrings(event);
+
+        if (Boolean.TRUE.equals(request.getAvailableAllDays())) {
+            request.setUnavailableDates(Collections.emptyList());
+            return;
+        }
+
+        if (request.getUnavailableDates() == null || request.getUnavailableDates().isEmpty()) {
+            throw new IllegalArgumentException("Please select at least one date you are unavailable");
+        }
+
+        if (eventDateStrings.isEmpty()) {
+            throw new IllegalArgumentException("Event dates are not configured. Please contact the organizers.");
+        }
+
+        for (String date : request.getUnavailableDates()) {
+            if (!eventDateStrings.contains(date)) {
+                throw new IllegalArgumentException("Selected date " + date + " is outside the event schedule");
+            }
+        }
+    }
+
+    private String serializeUnavailableDates(List<String> unavailableDates) {
+        if (unavailableDates == null || unavailableDates.isEmpty()) {
+            return null;
+        }
+        return unavailableDates.stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .collect(Collectors.joining(","));
+    }
+
+    private List<String> parseUnavailableDates(String storedValue) {
+        if (storedValue == null || storedValue.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(storedValue.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    private List<String> getEventDateStrings(Event event) {
+        if (event.getEventStartDate() == null || event.getEventEndDate() == null) {
+            return Collections.emptyList();
+        }
+        LocalDate start = event.getEventStartDate().toLocalDate();
+        LocalDate end = event.getEventEndDate().toLocalDate();
+        if (end.isBefore(start)) {
+            return Collections.emptyList();
+        }
+
+        List<String> dates = new java.util.ArrayList<>();
+        LocalDate cursor = start;
+        while (!cursor.isAfter(end)) {
+            dates.add(cursor.toString());
+            cursor = cursor.plusDays(1);
+        }
+        return dates;
+    }
+
+    private CricketPreference resolveCricketPreference(String storedPreference, CricketRole primaryRole) {
+        if (storedPreference != null) {
+            try {
+                return CricketPreference.valueOf(storedPreference);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        if (primaryRole == null) {
+            return null;
+        }
+        return switch (primaryRole) {
+            case BATSMAN -> CricketPreference.BATTING;
+            case BOWLER -> CricketPreference.BOWLING;
+            case ALL_ROUNDER -> CricketPreference.ALL_ROUNDER;
+            case WICKET_KEEPER -> CricketPreference.WICKET_KEEPER;
+        };
+    }
+
+    private User refreshUserDetails(User user, CricketEventRegistrationRequest request) {
+        boolean updated = false;
+        if (request.getGender() != null && user.getGender() != request.getGender()) {
+            user.setGender(request.getGender());
+            updated = true;
+        }
+        if (request.getTshirtSize() != null) {
+            user.setPreferredTshirtSize(request.getTshirtSize());
+            updated = true;
+        }
+        if (request.getResidentialAddress() != null) {
+            user.setResidentialAddress(request.getResidentialAddress());
+            updated = true;
+        }
+        if (request.getWhatsappNumber() != null) {
+            user.setWhatsappNumber(request.getWhatsappNumber());
+            updated = true;
+        }
+        if (request.getAadhaarFrontPhoto() != null) {
+            user.setAadhaarFrontPhoto(request.getAadhaarFrontPhoto());
+            updated = true;
+        }
+        if (request.getAadhaarBackPhoto() != null) {
+            user.setAadhaarBackPhoto(request.getAadhaarBackPhoto());
+            updated = true;
+        }
+        if (request.getPlayerPhoto() != null) {
+            user.setPlayerPhoto(request.getPlayerPhoto());
+            updated = true;
+        }
+        if (updated) {
+            return userRepository.save(user);
+        }
+        return user;
     }
 }
 

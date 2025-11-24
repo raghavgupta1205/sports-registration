@@ -18,6 +18,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { enIN } from 'date-fns/locale';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -68,8 +69,12 @@ function Register() {
       validationErrors.password = 'Password must be at least 6 characters';
     }
 
-    if (formData.phoneNumber && !/^\d{10}$/.test(formData.phoneNumber)) {
-      validationErrors.phoneNumber = 'Phone number must be 10 digits';
+    if (!formData.phoneNumber || !/^\d{10}$/.test(formData.phoneNumber)) {
+      validationErrors.phoneNumber = 'Phone number must be a valid 10-digit Indian number';
+    }
+
+    if (!formData.dateOfBirth) {
+      validationErrors.dateOfBirth = 'Date of birth is required';
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -81,7 +86,7 @@ function Register() {
       const response = await register({
         ...formData,
         aadhaarNumber: formData.aadhaarNumber.trim(),
-        dateOfBirth: formData.dateOfBirth.toISOString().split('T')[0]
+        dateOfBirth: formData.dateOfBirth ? formData.dateOfBirth.toISOString().split('T')[0] : null
       });
       navigate('/login', { 
         state: { message: 'Registration successful! Please login.' }
@@ -140,11 +145,12 @@ function Register() {
             error={!!errors.fathersName}
             helperText={errors.fathersName}
           />
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enIN}>
             <DatePicker
               label="Date of Birth"
               value={formData.dateOfBirth}
               onChange={handleDateChange}
+              inputFormat="dd/MM/yyyy"
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -178,8 +184,16 @@ function Register() {
             label="Phone Number"
             value={formData.phoneNumber}
             onChange={handleChange}
+            inputProps={{
+              maxLength: 10,
+              inputMode: 'numeric',
+              pattern: '\\d*'
+            }}
+            onInput={(e) => {
+              e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+            }}
             error={!!errors.phoneNumber}
-            helperText={errors.phoneNumber}
+            helperText={errors.phoneNumber || 'Enter your 10-digit mobile number'}
           />
           <TextField
             margin="normal"

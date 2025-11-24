@@ -11,7 +11,8 @@ import java.util.Optional;
 @Repository
 public interface EventRegistrationRepository extends JpaRepository<EventRegistration, Long> {
     List<EventRegistration> findByUserIdAndRegistrationStatusNot(Long userId, RegistrationStatus registrationStatus);
-    List<EventRegistration> findByUserIdAndEventYear(Long userId, Integer eventYear);
-    boolean existsByUserIdAndEventYear(Long userId, Integer eventYear);
     Optional<EventRegistration> findByUserIdAndEventIdAndRegistrationStatus(Long userId, Long eventId, RegistrationStatus registrationStatus);
+    Optional<EventRegistration> findByUserIdAndEventId(Long userId, Long eventId);
+    boolean existsByEventIdAndJerseyNumber(Long eventId, Integer jerseyNumber);
+    Optional<EventRegistration> findFirstByUserIdAndEvent_EventTypeOrderByUpdatedAtDesc(Long userId, String eventType);
 } 

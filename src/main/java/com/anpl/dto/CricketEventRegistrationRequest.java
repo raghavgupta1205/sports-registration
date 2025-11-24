@@ -1,7 +1,12 @@
 package com.anpl.dto;
 
-import com.anpl.model.*;
+import com.anpl.model.CricketPreference;
+import com.anpl.model.GameLevel;
+import com.anpl.model.HandPreference;
+import com.anpl.model.BowlingPace;
+import com.anpl.model.RegistrationCategory;
 import jakarta.validation.constraints.*;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -17,17 +22,12 @@ public class CricketEventRegistrationRequest {
     private Long eventId;
 
     // Basic Personal Information
-    @NotNull(message = "Gender is required")
-    private Gender gender;
+    private com.anpl.model.Gender gender;
 
-    @NotNull(message = "T-shirt size is required")
-    private TShirtSize tshirtSize;
+    private com.anpl.model.TShirtSize tshirtSize;
 
-    @NotBlank(message = "Residential address is required")
-    @Size(max = 500, message = "Address must not exceed 500 characters")
     private String residentialAddress;
 
-    @NotBlank(message = "WhatsApp number is required")
     @Pattern(regexp = "^\\d{10}$", message = "WhatsApp number must be 10 digits")
     private String whatsappNumber;
 
@@ -42,8 +42,25 @@ public class CricketEventRegistrationRequest {
     private String playerPhoto;
 
     // Cricket Specific Skills
+    @NotNull(message = "Registration category is required")
+    private RegistrationCategory registrationCategory;
+
     @NotNull(message = "Game level is required")
     private GameLevel gameLevel;
+
+    @NotNull(message = "Availability selection is required")
+    private Boolean availableAllDays;
+
+    @Size(max = 31, message = "You can specify up to 31 unavailable dates")
+    private List<@Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date must be in yyyy-MM-dd format") String> unavailableDates;
+
+    @NotBlank(message = "Sports history is required")
+    @Size(max = 1000, message = "Sports history must be under 1000 characters")
+    private String sportsHistory;
+
+    @NotBlank(message = "Achievements are required")
+    @Size(max = 1000, message = "Achievements must be under 1000 characters")
+    private String achievements;
 
     @NotNull(message = "Cricket preference is required")
     private CricketPreference cricketPreference;

@@ -3,7 +3,6 @@ package com.anpl.controller;
 import com.anpl.dto.*;
 import com.anpl.security.UserPrincipal;
 import com.anpl.service.CricketEventRegistrationService;
-import com.anpl.service.CricketRegistrationService;
 import com.anpl.service.FileUploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +22,6 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class CricketRegistrationController {
 
-    private final CricketRegistrationService cricketRegistrationService;
     private final CricketEventRegistrationService cricketEventRegistrationService;
     private final FileUploadService fileUploadService;
 
@@ -68,23 +66,14 @@ public class CricketRegistrationController {
     }
 
     /**
-     * Get cricket registration by ID
+     * Get cricket registration for current user and event
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CricketRegistrationResponse>> getCricketRegistrationById(
-            @PathVariable Long id) {
-        CricketRegistrationResponse response = cricketRegistrationService.getCricketRegistrationById(id);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    /**
-     * Update cricket registration (if needed before payment)
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CricketRegistrationResponse>> updateCricketRegistration(
-            @PathVariable Long id,
-            @Valid @RequestBody CricketRegistrationRequest request) {
-        CricketRegistrationResponse response = cricketRegistrationService.updateCricketRegistration(id, request);
+    @GetMapping("/event/{eventId}")
+    public ResponseEntity<ApiResponse<CricketRegistrationResponse>> getCricketRegistrationForEvent(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long eventId) {
+        CricketRegistrationResponse response = cricketEventRegistrationService
+                .getCricketDetailsForEvent(userPrincipal.getUser(), eventId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

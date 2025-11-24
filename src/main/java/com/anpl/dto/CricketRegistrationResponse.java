@@ -4,42 +4,52 @@ import com.anpl.model.*;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 public class CricketRegistrationResponse {
-    private Long id;
     private Long eventRegistrationId;
-    
-    // Basic Information
+    private Long playerProfileId;
+    private Long cricketProfileId;
+
+    // User Static Information
     private Gender gender;
-    private TShirtSize tshirtSize;
+    private TShirtSize preferredTshirtSize;
     private String residentialAddress;
     private String whatsappNumber;
-    
-    // Photo/Document URLs
     private String aadhaarFrontPhoto;
     private String aadhaarBackPhoto;
     private String playerPhoto;
-    
-    // Cricket Specific Fields
-    private GameLevel gameLevel;
+
+    // Cricket Profile
+    private RegistrationCategory registrationCategory;
+    private GameLevel skillLevel;
+    private String sportsHistory;
+    private String achievements;
     private CricketPreference cricketPreference;
+    private CricketRole primaryRole;
     private Boolean isWicketKeeper;
     private Boolean hasCaptainExperience;
+    private BattingStyle battingStyle;
     private HandPreference battingHand;
-    private HandPreference bowlingArm;
+    private BattingPosition battingPosition;
+    private BowlingStyle bowlingStyle;
+    private BowlingType bowlingType;
     private BowlingPace bowlingPace;
-    
-    // T-Shirt Details
+    private HandPreference bowlingArm;
+    private String preferredFieldingPosition;
+
+    // Event Specific Details
     private String tshirtName;
-    private Integer luckyNumber;
-    
-    // Terms
+    private Integer jerseyNumber;
+    private Boolean availableAllDays;
+    private List<String> unavailableDates;
     private Boolean termsAccepted;
-    
-    // Timestamps
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime termsAcceptedAt;
+
+    // Metadata
+    private LocalDateTime profileCreatedAt;
+    private LocalDateTime profileUpdatedAt;
 }
 

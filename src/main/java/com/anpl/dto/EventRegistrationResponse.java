@@ -14,9 +14,15 @@ public class EventRegistrationResponse {
     private String email;
     private String phoneNumber;
     private String block;
-    private Integer eventYear;
     private RegistrationStatus registrationStatus;
     private LocalDateTime registrationDate;
+    private String tshirtName;
+    private Integer jerseyNumber;
+    private com.anpl.model.RegistrationCategory registrationCategory;
+    private Boolean availableAllDays;
+    private String unavailableDates;
+    private Boolean termsAccepted;
+    private LocalDateTime termsAcceptedAt;
     private EventResponse event;
 
     @Data

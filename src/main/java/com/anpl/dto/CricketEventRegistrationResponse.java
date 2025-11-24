@@ -11,13 +11,12 @@ import lombok.Data;
 @Builder
 public class CricketEventRegistrationResponse {
     private Long eventRegistrationId;
-    private Long cricketRegistrationId;
+    private Long playerProfileId;
+    private Long cricketProfileId;
     private String registrationNumber;
     private String eventName;
     private Double eventPrice;
     private String message;
-    
-    // Used to indicate the registration is complete and ready for payment
     private Boolean readyForPayment;
 }
 

@@ -6,7 +6,6 @@ import com.anpl.model.EventRegistration;
 import com.anpl.model.User;
 import com.anpl.model.Event;
 import com.anpl.model.RegistrationStatus;
-import com.anpl.model.PaymentStatus;
 import com.anpl.exception.ResourceAlreadyExistsException;
 import com.anpl.exception.ResourceNotFoundException;
 import com.anpl.repository.EventRegistrationRepository;
@@ -55,6 +54,7 @@ public class EventRegistrationService {
         registration.setEvent(event);
         registration.setRegistrationStatus(RegistrationStatus.PENDING);
         registration.setCreatedAt(LocalDateTime.now());
+        registration.setUpdatedAt(LocalDateTime.now());
 
         EventRegistration savedRegistration = eventRegistrationRepository.save(registration);
         
@@ -97,15 +97,21 @@ public class EventRegistrationService {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .block(user.getBlock())
-                .eventYear(registration.getEvent().getYear())
                 .registrationStatus(registration.getRegistrationStatus())
                 .registrationDate(registration.getCreatedAt())
+                .registrationCategory(registration.getRegistrationCategory())
+                .tshirtName(registration.getTshirtName())
+                .jerseyNumber(registration.getJerseyNumber())
+                .availableAllDays(registration.getAvailableAllDays())
+                .unavailableDates(registration.getUnavailableDates())
+                .termsAccepted(registration.getTermsAccepted())
+                .termsAcceptedAt(registration.getTermsAcceptedAt())
                 .event(EventRegistrationResponse.EventResponse.builder()
-                    .id(registration.getEvent().getId())
-                    .name(registration.getEvent().getName())
-                    .description(registration.getEvent().getDescription())
-                    .price(registration.getEvent().getPrice())
-                    .build())
+                        .id(registration.getEvent().getId())
+                        .name(registration.getEvent().getName())
+                        .description(registration.getEvent().getDescription())
+                        .price(registration.getEvent().getPrice())
+                        .build())
                 .build();
     }
 

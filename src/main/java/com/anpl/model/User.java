@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(name = "users")
+@Table(name = "users", schema = "anpl_sports")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,6 +28,12 @@ public class User {
     @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
 
+    @Column(name = "whatsapp_number")
+    private String whatsappNumber;
+
+    @Column(name = "residential_address", length = 500)
+    private String residentialAddress;
+
     @Column(nullable = false)
     private String password;
 
@@ -40,9 +46,22 @@ public class User {
     @Column(name = "house_number", nullable = false)
     private String houseNumber;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    private Gender gender;
+
+    @Column(name = "blood_group", length = 5)
+    private String bloodGroup;
+
+    @Column(name = "emergency_contact", length = 20)
+    private String emergencyContact;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private UserRole role = UserRole.USER;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 
     @Column(name = "reset_token")
     private String resetToken;
@@ -50,8 +69,21 @@ public class User {
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
 
-    @Column(name = "aadhaar_number", length = 12, nullable = false)
+    @Column(name = "aadhaar_number", length = 12, nullable = false, unique = true)
     private String aadhaarNumber;
+
+    @Column(name = "aadhaar_front_photo", length = 500)
+    private String aadhaarFrontPhoto;
+
+    @Column(name = "aadhaar_back_photo", length = 500)
+    private String aadhaarBackPhoto;
+
+    @Column(name = "player_photo", length = 500)
+    private String playerPhoto;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_tshirt_size")
+    private TShirtSize preferredTshirtSize;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

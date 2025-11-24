@@ -18,8 +18,6 @@ import com.anpl.repository.EventRepository;
 import com.anpl.model.Event;
 import com.anpl.exception.ResourceNotFoundException;
 import com.anpl.exception.PaymentException;
-import com.anpl.service.PaymentService;
-import com.anpl.service.EventRegistrationService;
 import com.anpl.repository.PaymentRepository;
 import com.anpl.model.Payment;
 import com.anpl.model.PaymentStatus;

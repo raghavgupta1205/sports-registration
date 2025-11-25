@@ -48,6 +48,9 @@ public class CricketPlayerSkills {
     @Column(name = "is_wicket_keeper", nullable = false)
     private Boolean isWicketKeeper = false;
 
+    @Column(name = "is_all_rounder", nullable = false)
+    private Boolean isAllRounder = false;
+
     @Column(name = "preferred_fielding_position", length = 50)
     private String preferredFieldingPosition;
 
@@ -73,6 +76,25 @@ public class CricketPlayerSkills {
 
     @Column(name = "best_bowling", length = 10)
     private String bestBowling;
+
+    // CricHeroes Information
+    @Column(name = "cricheroes_phone", length = 20)
+    private String cricHeroesPhone;
+
+    @Column(name = "cricheroes_matches_played")
+    private Integer cricHeroesMatchesPlayed = 0;
+
+    @Column(name = "cricheroes_total_runs")
+    private Integer cricHeroesTotalRuns = 0;
+
+    @Column(name = "cricheroes_strike_rate", precision = 6, scale = 2)
+    private BigDecimal cricHeroesStrikeRate;
+
+    @Column(name = "cricheroes_total_wickets")
+    private Integer cricHeroesTotalWickets = 0;
+
+    @Column(name = "cricheroes_bowling_economy", precision = 5, scale = 2)
+    private BigDecimal cricHeroesBowlingEconomy;
 
     // Timestamps
     @Column(name = "created_at", nullable = false)

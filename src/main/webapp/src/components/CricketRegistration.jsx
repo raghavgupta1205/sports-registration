@@ -65,8 +65,7 @@ const gameLevelOptions = [
 const cricketPreferenceOptions = [
   { value: 'BATTING', label: 'Batting' },
   { value: 'BOWLING', label: 'Bowling' },
-  { value: 'ALL_ROUNDER', label: 'All Rounder' },
-  { value: 'WICKET_KEEPER', label: 'Wicket Keeper' }
+  { value: 'ALL_ROUNDER', label: 'Both of the above' }
 ];
 
 const handOptions = [
@@ -139,7 +138,7 @@ const getFileUrl = (path = '') => {
 
 const normalizeCricketPreference = (preference, role) => {
   if (preference) {
-    return preference;
+    return preference === 'WICKET_KEEPER' ? '' : preference;
   }
   if (!role) return '';
   switch (role) {
@@ -192,11 +191,18 @@ function CricketRegistration() {
     unavailableDates: [],
     sportsHistory: '',
     achievements: '',
+    cricHeroesPhone: '',
+    cricHeroesMatchesPlayed: '0',
+    cricHeroesTotalRuns: '0',
+    cricHeroesStrikeRate: '0',
+    cricHeroesTotalWickets: '0',
+    cricHeroesBowlingEconomy: '0',
     aadhaarFrontPhoto: '',
     aadhaarBackPhoto: '',
     playerPhoto: '',
     cricketPreference: '',
     isWicketKeeper: false,
+    isAllRounder: false,
     hasCaptainExperience: false,
     battingHand: '',
     bowlingArm: '',
@@ -237,11 +243,18 @@ function CricketRegistration() {
           unavailableDates: data.unavailableDates || [],
           sportsHistory: data.sportsHistory || '',
           achievements: data.achievements || '',
+          cricHeroesPhone: data.cricHeroesPhone || '',
+          cricHeroesMatchesPlayed: data.cricHeroesMatchesPlayed != null ? String(data.cricHeroesMatchesPlayed) : '0',
+          cricHeroesTotalRuns: data.cricHeroesTotalRuns != null ? String(data.cricHeroesTotalRuns) : '0',
+          cricHeroesStrikeRate: data.cricHeroesStrikeRate != null ? String(data.cricHeroesStrikeRate) : '0',
+          cricHeroesTotalWickets: data.cricHeroesTotalWickets != null ? String(data.cricHeroesTotalWickets) : '0',
+          cricHeroesBowlingEconomy: data.cricHeroesBowlingEconomy != null ? String(data.cricHeroesBowlingEconomy) : '0',
           aadhaarFrontPhoto: data.aadhaarFrontPhoto || '',
           aadhaarBackPhoto: data.aadhaarBackPhoto || '',
           playerPhoto: data.playerPhoto || '',
           cricketPreference: normalizeCricketPreference(data.cricketPreference, data.primaryRole),
           isWicketKeeper: data.isWicketKeeper ?? false,
+          isAllRounder: data.isAllRounder ?? (data.primaryRole === 'ALL_ROUNDER'),
           hasCaptainExperience: data.hasCaptainExperience ?? false,
           battingHand: data.battingHand || '',
           bowlingArm: data.bowlingArm || '',
@@ -390,6 +403,13 @@ function CricketRegistration() {
         const history = formData.sportsHistory.trim();
         const achievements = formData.achievements.trim();
         const requiresUnavailableSelection = formData.availableAllDays === false && eventDates.length > 0;
+        const cricHeroesPhoneValid = /^\d{10}$/.test(formData.cricHeroesPhone || '');
+        const statsFilled =
+          formData.cricHeroesMatchesPlayed !== '' &&
+          formData.cricHeroesTotalRuns !== '' &&
+          formData.cricHeroesStrikeRate !== '' &&
+          formData.cricHeroesTotalWickets !== '' &&
+          formData.cricHeroesBowlingEconomy !== '';
         return (
           formData.registrationCategory &&
           formData.gameLevel &&
@@ -399,6 +419,8 @@ function CricketRegistration() {
           formData.bowlingPace &&
           history.length > 0 &&
           achievements.length > 0 &&
+          cricHeroesPhoneValid &&
+          statsFilled &&
           (!requiresUnavailableSelection || formData.unavailableDates.length > 0)
         );
       }
@@ -408,7 +430,7 @@ function CricketRegistration() {
           formData.tshirtName &&
           Number.isInteger(lucky) &&
           lucky >= 1 &&
-          lucky <= 99 &&
+          lucky <= 999 &&
           formData.termsAccepted
         );
       }
@@ -447,6 +469,12 @@ function CricketRegistration() {
         eventId: Number(eventId),
         sportsHistory: formData.sportsHistory.trim(),
         achievements: formData.achievements.trim(),
+        cricHeroesPhone: formData.cricHeroesPhone.trim(),
+        cricHeroesMatchesPlayed: Number(formData.cricHeroesMatchesPlayed || 0),
+        cricHeroesTotalRuns: Number(formData.cricHeroesTotalRuns || 0),
+        cricHeroesStrikeRate: parseFloat(formData.cricHeroesStrikeRate || '0'),
+        cricHeroesTotalWickets: Number(formData.cricHeroesTotalWickets || 0),
+        cricHeroesBowlingEconomy: parseFloat(formData.cricHeroesBowlingEconomy || '0'),
         luckyNumber: Number(formData.luckyNumber)
       };
       const response = await api.post('/cricket-registrations/complete', payload);
@@ -745,7 +773,17 @@ function CricketRegistration() {
               onChange={handleChange}
             />
           }
-          label="I am a Wicket Keeper"
+          label="I'm a Wicket Keeper"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isAllRounder"
+              checked={formData.isAllRounder}
+              onChange={handleChange}
+            />
+          }
+          label="I'm an All-Rounder"
         />
         <FormControlLabel
           control={
@@ -797,6 +835,108 @@ function CricketRegistration() {
           </Select>
         </FormControl>
       </Grid>
+
+      <Grid item xs={12}>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="h6" gutterBottom>
+          Info on CricHeroes
+        </Typography>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          label="Mobile number registered on CricHeroes"
+          name="cricHeroesPhone"
+          value={formData.cricHeroesPhone}
+          onChange={(e) => {
+            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+            setFormData((prev) => ({ ...prev, cricHeroesPhone: digitsOnly }));
+          }}
+          inputProps={{ maxLength: 10 }}
+          helperText="Enter the mobile number linked to your CricHeroes profile"
+          error={Boolean(formData.cricHeroesPhone) && formData.cricHeroesPhone.length !== 10}
+        />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          required
+          label="Matches Played (CricHeroes)"
+          name="cricHeroesMatchesPlayed"
+          value={formData.cricHeroesMatchesPlayed}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/\D/g, '');
+            setFormData((prev) => ({ ...prev, cricHeroesMatchesPlayed: sanitized }));
+          }}
+          helperText='Fill the information as per CricHeroes, else enter "0"'
+        />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          required
+          label="Total Runs Scored (CricHeroes)"
+          name="cricHeroesTotalRuns"
+          value={formData.cricHeroesTotalRuns}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/\D/g, '');
+            setFormData((prev) => ({ ...prev, cricHeroesTotalRuns: sanitized }));
+          }}
+          helperText='Fill the information as per CricHeroes, else enter "0"'
+        />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          required
+          label="Batsman Strike Rate (CricHeroes)"
+          name="cricHeroesStrikeRate"
+          value={formData.cricHeroesStrikeRate}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/[^0-9.]/g, '');
+            const parts = sanitized.split('.');
+            const normalized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : sanitized;
+            setFormData((prev) => ({ ...prev, cricHeroesStrikeRate: normalized }));
+          }}
+          helperText='Fill the information as per CricHeroes, else enter "0"'
+        />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          required
+          label="Total Wickets Taken (CricHeroes)"
+          name="cricHeroesTotalWickets"
+          value={formData.cricHeroesTotalWickets}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/\D/g, '');
+            setFormData((prev) => ({ ...prev, cricHeroesTotalWickets: sanitized }));
+          }}
+          helperText='Fill the information as per CricHeroes, else enter "0"'
+        />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth
+          required
+          label="Bowling Economy (CricHeroes)"
+          name="cricHeroesBowlingEconomy"
+          value={formData.cricHeroesBowlingEconomy}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/[^0-9.]/g, '');
+            const parts = sanitized.split('.');
+            const normalized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : sanitized;
+            setFormData((prev) => ({ ...prev, cricHeroesBowlingEconomy: normalized }));
+          }}
+          helperText='Fill the information as per CricHeroes, else enter "0"'
+        />
+      </Grid>
     </Grid>
   );
 
@@ -823,13 +963,16 @@ function CricketRegistration() {
           fullWidth
           required
           type="number"
-          label="Jersey Number (1-99)"
+          label="Jersey Number (1-999)"
           name="luckyNumber"
           value={formData.luckyNumber}
           onChange={handleChange}
-          inputProps={{ min: 1, max: 99 }}
+          inputProps={{ min: 1, max: 999 }}
           helperText="Unique number printed on your jersey"
-          error={Boolean(formData.luckyNumber) && (Number(formData.luckyNumber) < 1 || Number(formData.luckyNumber) > 99)}
+          error={
+            Boolean(formData.luckyNumber) &&
+            (Number(formData.luckyNumber) < 1 || Number(formData.luckyNumber) > 999)
+          }
         />
       </Grid>
 
@@ -864,7 +1007,7 @@ function CricketRegistration() {
           }
           label={
             <Typography variant="body2">
-              I agree to the Terms & Conditions and confirm that all information provided is accurate *
+              I agree to the Terms & Conditions and confirm that all information provided is accurate
             </Typography>
           }
         />

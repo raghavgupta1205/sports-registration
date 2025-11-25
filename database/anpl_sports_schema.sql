@@ -230,6 +230,15 @@ CREATE TABLE anpl_sports.cricket_player_skills (
     bowling_average DECIMAL(5,2),
     best_score INTEGER,
     best_bowling VARCHAR(10),
+    is_all_rounder BOOLEAN DEFAULT false,
+    
+    -- CricHeroes Stats
+    cricheroes_phone VARCHAR(20),
+    cricheroes_matches_played INTEGER DEFAULT 0,
+    cricheroes_total_runs INTEGER DEFAULT 0,
+    cricheroes_strike_rate DECIMAL(6,2),
+    cricheroes_total_wickets INTEGER DEFAULT 0,
+    cricheroes_bowling_economy DECIMAL(5,2),
     
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -474,10 +483,17 @@ SELECT
     cps.bowling_style,
     cps.bowling_type,
     cps.is_wicket_keeper,
+    cps.is_all_rounder,
     cps.has_captaincy_experience,
     cps.matches_played,
     cps.batting_average,
-    cps.bowling_average
+    cps.bowling_average,
+    cps.cricheroes_phone,
+    cps.cricheroes_matches_played,
+    cps.cricheroes_total_runs,
+    cps.cricheroes_strike_rate,
+    cps.cricheroes_total_wickets,
+    cps.cricheroes_bowling_economy
 FROM anpl_sports.users u
 JOIN anpl_sports.player_profiles pp ON u.id = pp.user_id
 JOIN anpl_sports.cricket_player_skills cps ON pp.id = cps.player_profile_id

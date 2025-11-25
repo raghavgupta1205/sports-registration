@@ -246,8 +246,15 @@ public class CricketEventRegistrationService {
                 .skillLevel(profile != null ? profile.getSkillLevel() : null)
                 .sportsHistory(profile != null ? profile.getSportsHistory() : null)
                 .achievements(profile != null ? profile.getAchievements() : null)
+                .cricHeroesPhone(skills != null ? skills.getCricHeroesPhone() : null)
+                .cricHeroesMatchesPlayed(skills != null ? skills.getCricHeroesMatchesPlayed() : null)
+                .cricHeroesTotalRuns(skills != null ? skills.getCricHeroesTotalRuns() : null)
+                .cricHeroesStrikeRate(skills != null ? skills.getCricHeroesStrikeRate() : null)
+                .cricHeroesTotalWickets(skills != null ? skills.getCricHeroesTotalWickets() : null)
+                .cricHeroesBowlingEconomy(skills != null ? skills.getCricHeroesBowlingEconomy() : null)
                 .primaryRole(skills != null ? skills.getPrimaryRole() : null)
                 .isWicketKeeper(skills != null ? skills.getIsWicketKeeper() : null)
+                .isAllRounder(skills != null ? skills.getIsAllRounder() : null)
                 .hasCaptainExperience(skills != null ? skills.getHasCaptaincyExperience() : null)
                 .battingStyle(skills != null ? skills.getBattingStyle() : null)
                 .battingHand(skills != null ? mapStyleToHand(skills.getBattingStyle()) : null)
@@ -281,7 +288,14 @@ public class CricketEventRegistrationService {
         skills.setBowlingArm(request.getBowlingArm());
         skills.setBattingPosition(null);
         skills.setIsWicketKeeper(request.getIsWicketKeeper());
+        skills.setIsAllRounder(request.getIsAllRounder());
         skills.setHasCaptaincyExperience(request.getHasCaptainExperience());
+        skills.setCricHeroesPhone(request.getCricHeroesPhone());
+        skills.setCricHeroesMatchesPlayed(request.getCricHeroesMatchesPlayed());
+        skills.setCricHeroesTotalRuns(request.getCricHeroesTotalRuns());
+        skills.setCricHeroesStrikeRate(request.getCricHeroesStrikeRate());
+        skills.setCricHeroesTotalWickets(request.getCricHeroesTotalWickets());
+        skills.setCricHeroesBowlingEconomy(request.getCricHeroesBowlingEconomy());
     }
 
     private CricketRole mapRole(CricketPreference preference) {

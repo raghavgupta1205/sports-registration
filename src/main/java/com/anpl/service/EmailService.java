@@ -14,7 +14,6 @@ public interface EmailService {
                                       EventRegistration registration,
                                       PlayerProfile playerProfile,
                                       CricketPlayerSkills cricketPlayerSkills);
-    void sendRegistrationStatusUpdateEmail(User user, EventRegistration registration);
     void sendPaymentSuccessEmail(User user);
     void sendPasswordResetEmail(User user, String resetUrl);
 } 

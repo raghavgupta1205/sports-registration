@@ -3,6 +3,7 @@ package com.anpl.repository;
 import com.anpl.model.EventRegistration;
 import com.anpl.model.RegistrationStatus;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -15,4 +16,10 @@ public interface EventRegistrationRepository extends JpaRepository<EventRegistra
     Optional<EventRegistration> findByUserIdAndEventId(Long userId, Long eventId);
     boolean existsByEventIdAndJerseyNumber(Long eventId, Integer jerseyNumber);
     Optional<EventRegistration> findFirstByUserIdAndEvent_EventTypeOrderByUpdatedAtDesc(Long userId, String eventType);
+
+    @EntityGraph(attributePaths = {"user", "event"})
+    List<EventRegistration> findAll();
+
+    @EntityGraph(attributePaths = {"user", "event"})
+    Optional<EventRegistration> findById(Long id);
 } 

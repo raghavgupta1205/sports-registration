@@ -1,8 +1,10 @@
 package com.anpl.controller;
 
+import com.anpl.dto.AdminRegistrationDetailResponse;
+import com.anpl.dto.AdminRegistrationStatusUpdateRequest;
+import com.anpl.dto.AdminRegistrationSummaryResponse;
 import com.anpl.dto.ApiResponse;
 import com.anpl.dto.EventRequest;
-import com.anpl.dto.EventRegistrationResponse;
 import com.anpl.model.Event;
 import com.anpl.model.RegistrationStatus;
 import com.anpl.service.AdminService;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @CrossOrigin(origins = "*")
@@ -25,13 +27,32 @@ public class AdminController {
     private final EventService eventService;
 
     @GetMapping("/registrations")
-    public ResponseEntity<ApiResponse<List<EventRegistrationResponse>>> getAllRegistrations() {
-        List<EventRegistrationResponse> registrations = adminService.getAllRegistrations();
+    public ResponseEntity<ApiResponse<List<AdminRegistrationSummaryResponse>>> getAllRegistrations(
+            @RequestParam(required = false) String eventType,
+            @RequestParam(required = false) RegistrationStatus status,
+            @RequestParam(required = false, defaultValue = "false") boolean includeFailed) {
+        List<AdminRegistrationSummaryResponse> registrations = adminService.getRegistrationSummaries(
+                eventType, status, includeFailed);
         return ResponseEntity.ok(ApiResponse.success(registrations));
     }
 
-    @PutMapping("/registrations/{registrationId}/status")
+    @GetMapping("/registrations/{registrationId}")
+    public ResponseEntity<ApiResponse<AdminRegistrationDetailResponse>> getRegistrationDetail(
+            @PathVariable Long registrationId) {
+        AdminRegistrationDetailResponse detail = adminService.getRegistrationDetail(registrationId);
+        return ResponseEntity.ok(ApiResponse.success(detail));
+    }
+
+    @PatchMapping("/registrations/{registrationId}")
     public ResponseEntity<ApiResponse<Void>> updateRegistrationStatus(
+            @PathVariable Long registrationId,
+            @Valid @RequestBody AdminRegistrationStatusUpdateRequest request) {
+        adminService.updateRegistrationStatus(registrationId, request.getStatus());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PutMapping("/registrations/{registrationId}/status")
+    public ResponseEntity<ApiResponse<Void>> updateRegistrationStatusCompat(
             @PathVariable Long registrationId,
             @RequestParam RegistrationStatus status) {
         adminService.updateRegistrationStatus(registrationId, status);

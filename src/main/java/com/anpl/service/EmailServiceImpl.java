@@ -5,7 +5,6 @@ import com.anpl.model.Event;
 import com.anpl.model.EventRegistration;
 import com.anpl.model.PlayerProfile;
 import com.anpl.model.CricketPlayerSkills;
-import com.anpl.model.RegistrationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -79,15 +78,6 @@ public class EmailServiceImpl implements EmailService {
         context.setVariable("heroImage", cricketBannerUrl);
         String content = templateEngine.process("cricket-registration", context);
         sendEmail(user.getEmail(), "Cricket Registration Received", content);
-    }
-
-    @Override
-    public void sendRegistrationStatusUpdateEmail(User user, EventRegistration registration) {
-        Context context = baseContext();
-        context.setVariable("user", user);
-        context.setVariable("registration", registration);
-        String content = templateEngine.process("registration-status-update", context);
-        sendEmail(user.getEmail(), "ANPL Registration Status Update", content);
     }
 
     @Override

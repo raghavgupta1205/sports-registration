@@ -24,7 +24,6 @@ public class EventRegistrationService {
     private final EventRegistrationRepository eventRegistrationRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
-    private final EmailService emailService;
 
     @Transactional
     public EventRegistrationResponse registerForEvent(Long userId, Long eventId) {
@@ -58,9 +57,6 @@ public class EventRegistrationService {
 
         EventRegistration savedRegistration = eventRegistrationRepository.save(registration);
         
-        // Send registration confirmation email
-        //emailService.sendEventRegistrationEmail(user, savedRegistration);
-
         return buildEventRegistrationResponse(savedRegistration);
     }
 
@@ -82,8 +78,6 @@ public class EventRegistrationService {
         registration.setRegistrationStatus(status);
         registration.setUpdatedAt(LocalDateTime.now());
         EventRegistration updatedRegistration = eventRegistrationRepository.save(registration);
-        
-        emailService.sendRegistrationStatusUpdateEmail(updatedRegistration.getUser(), updatedRegistration);
         
         return buildEventRegistrationResponse(updatedRegistration);
     }

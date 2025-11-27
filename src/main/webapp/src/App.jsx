@@ -7,6 +7,8 @@ import {
   Dashboard,
   CricketRegistration,
   PrivateRoute,
+  AdminRoute,
+  AdminRegistrations,
   ForgotPassword,
   ResetPassword
 } from './components';
@@ -35,6 +37,14 @@ function App() {
             <PrivateRoute>
               <CricketRegistration />
             </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/registrations"
+          element={
+            <AdminRoute>
+              <AdminRegistrations />
+            </AdminRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" />} />

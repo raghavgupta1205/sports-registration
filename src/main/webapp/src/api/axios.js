@@ -47,11 +47,27 @@ const authApi = {
 
 const registrationApi = {
     create: (data) => api.post('/registrations', data),
-    getUserRegistrations: () => api.get('/registrations'),
-    getAll: () => api.get('/admin/registrations'),
-    updateStatus: (id, status) => 
-        api.put(`/admin/registrations/${id}/status`, { status })
+    getUserRegistrations: () => api.get('/registrations')
 };
 
-export { authApi, registrationApi };
+const buildQueryString = (params = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+            searchParams.append(key, value);
+        }
+    });
+    const queryString = searchParams.toString();
+    return queryString ? `?${queryString}` : '';
+};
+
+const adminApi = {
+    getRegistrations: (params = {}) =>
+        api.get(`/admin/registrations${buildQueryString(params)}`),
+    getRegistrationDetail: (id) => api.get(`/admin/registrations/${id}`),
+    updateRegistrationStatus: (id, status) =>
+        api.patch(`/admin/registrations/${id}`, { status })
+};
+
+export { authApi, registrationApi, adminApi };
 export default api; 

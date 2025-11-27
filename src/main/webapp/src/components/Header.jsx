@@ -27,12 +27,26 @@ const Header = () => {
         >
           ANPL Sports
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
           {user ? (
             <>
-              <Button color="inherit" onClick={() => navigate('/dashboard')}>
-                Dashboard
-              </Button>
+              {[{ label: 'Dashboard', path: '/dashboard' }].map((link) => (
+                <Button key={link.path} color="inherit" onClick={() => navigate(link.path)}>
+                  {link.label}
+                </Button>
+              ))}
+              {user.role === 'ADMIN' &&
+                [
+                  { label: 'Registrations', path: '/admin/registrations' }
+                ].map((link) => (
+                  <Button
+                    key={link.path}
+                    color="inherit"
+                    onClick={() => navigate(link.path)}
+                  >
+                    {link.label}
+                  </Button>
+                ))}
               <Button color="inherit" onClick={handleLogout}>
                 Logout
               </Button>

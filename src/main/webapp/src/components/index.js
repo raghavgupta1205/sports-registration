@@ -11,3 +11,5 @@ export { default as Footer } from './Footer';
 export { default as PageLayout } from './PageLayout';
 export { default as ForgotPassword } from './ForgotPassword';
 export { default as ResetPassword } from './ResetPassword';
+export { default as AdminRegistrations } from './AdminRegistrations';
+export { default as AdminRoute } from './AdminRoute';

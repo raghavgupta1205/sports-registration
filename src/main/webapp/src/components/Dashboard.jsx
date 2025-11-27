@@ -249,6 +249,17 @@ const Dashboard = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Welcome, {user?.fullName}
         </Typography>
+
+        {user?.role === 'ADMIN' && (
+          <Button
+            variant="contained"
+            color="secondary"
+            sx={{ mb: 3 }}
+            onClick={() => navigate('/admin/registrations')}
+          >
+            Open Admin Panel
+          </Button>
+        )}
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

@@ -1,51 +1,153 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
+    <title>Welcome to [[${brandName}]]</title>
     <style>
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: Arial, sans-serif;
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6fb;
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #0f1b2c;
         }
-        .header {
-            background-color: #1976d2;
-            color: white;
-            padding: 20px;
-            text-align: center;
+        .email-wrapper {
+            width: 100%;
+            padding: 32px 0;
+        }
+        .card {
+            max-width: 640px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(25, 118, 210, 0.15);
+        }
+        .brand-bar {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid rgba(15, 27, 44, 0.08);
+        }
+        .brand-bar img {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(25, 118, 210, 0.2);
+        }
+        .brand-bar h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #0f1b2c;
+        }
+        .hero {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(15, 27, 44, 0.8), rgba(25, 118, 210, 0.7));
+        }
+        .hero-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 32px;
+            color: #ffffff;
+            z-index: 1;
+        }
+        .hero-text h2 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            letter-spacing: 0.5px;
+        }
+        .hero-text p {
+            margin: 0;
+            font-size: 16px;
+            opacity: 0.9;
         }
         .content {
+            padding: 32px;
+        }
+        .content p {
+            line-height: 1.6;
+            margin: 0 0 16px;
+        }
+        .details-card {
+            border: 1px solid rgba(25, 118, 210, 0.2);
+            border-radius: 14px;
             padding: 20px;
-            background-color: #f5f5f5;
+            margin: 24px 0;
+            background: rgba(25, 118, 210, 0.04);
+        }
+        .details-card strong {
+            color: #0f4c81;
         }
         .footer {
+            padding: 24px 32px 32px;
+            border-top: 1px solid rgba(15, 27, 44, 0.08);
             text-align: center;
-            padding: 20px;
-            font-size: 12px;
-            color: #666;
+            font-size: 13px;
+            color: #63748c;
+        }
+        @media (max-width: 480px) {
+            .brand-bar, .content, .footer {
+                padding: 24px;
+            }
+            .hero-text {
+                padding: 24px;
+            }
+            .cta {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome to ANPL!</h1>
-        </div>
-        <div class="content">
-            <p>Dear <span th:text="${user.fullName}"></span>,</p>
-            <p>Thank you for registering with Aggar Naggar Premier League. Your registration has been received successfully.</p>
-            <p>Your registration details:</p>
-            <ul>
-                <li>Registration Number: <strong th:text="${user.registrationNumber}"></strong></li>
-                <li>Email: <span th:text="${user.email}"></span></li>
-                <li>Phone: <span th:text="${user.phoneNumber}"></span></li>
-            </ul>
-            <p>Please complete your payment to confirm your participation in the tournament.</p>
-        </div>
-        <div class="footer">
-            <p>© 2024 Aggar Naggar Premier League. All rights reserved.</p>
+    <div class="email-wrapper">
+        <div class="card">
+            <div class="brand-bar">
+                <img th:src="${logoImage}" alt="[[${brandName}]] logo" />
+                <h1 th:text="${brandName}">ANPL Sports</h1>
+            </div>
+
+            <div class="hero" th:style="'background-image:url(' + ${heroImage} + ');'">
+                <div class="hero-text">
+                    <h2>Welcome to ANPL, <span th:text="${user.fullName}">Champion</span>!</h2>
+                    <p>Your Aggar Nagar Premier League account is officially live.</p>
+                </div>
+            </div>
+
+            <div class="content">
+                <p>Hey <strong th:text="${user.fullName}">Player</strong>,</p>
+                <p>We’re thrilled to have you in the ANPL community. Your profile is now active and you can explore upcoming sports registrations, upload player documents, and stay updated on league announcements.</p>
+
+                <div class="details-card">
+                    <p><strong>Registration ID:</strong> <span th:text="${user.registrationNumber}">ANPL-0000</span></p>
+                    <p><strong>Email:</strong> <span th:text="${user.email}">player@anpl.in</span></p>
+                    <p><strong>Phone:</strong> <span th:text="${user.phoneNumber}">9999999999</span></p>
+                </div>
+
+                <p>Log in anytime to manage your registrations, keep your documents up to date, and never miss an ANPL event.</p>
+            </div>
+
+            <div class="footer">
+                <p>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2024</span> <span th:text="${brandName}">Aggar Nagar Premier League</span>. All rights reserved.</p>
+            </div>
         </div>
     </div>
 </body>
-</html> 
+</html>

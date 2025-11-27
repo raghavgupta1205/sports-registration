@@ -93,6 +93,20 @@ const bowlingPaceOptions = [
   { value: 'NOT_APPLICABLE', label: 'Not Applicable' }
 ];
 
+const jerseySizeOptions = [
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+  { value: 'XL', label: 'XL' },
+  { value: 'SIZE_2XL', label: '2XL' },
+  { value: 'SIZE_3XL', label: '3XL' },
+  { value: 'SIZE_4XL', label: '4XL' },
+  { value: 'SIZE_5XL', label: '5XL' },
+  { value: 'SIZE_30', label: '30' },
+  { value: 'SIZE_32', label: '32' },
+  { value: 'SIZE_34', label: '34' },
+  { value: 'SIZE_36', label: '36' }
+];
+
 const dateLabelFormatter = new Intl.DateTimeFormat('en-IN', {
   weekday: 'short',
   day: '2-digit',
@@ -191,6 +205,7 @@ function CricketRegistration() {
     unavailableDates: [],
     sportsHistory: '',
     achievements: '',
+    tshirtSize: '',
     cricHeroesPhone: '',
     cricHeroesMatchesPlayed: '0',
     cricHeroesTotalRuns: '0',
@@ -243,6 +258,7 @@ function CricketRegistration() {
           unavailableDates: data.unavailableDates || [],
           sportsHistory: data.sportsHistory || '',
           achievements: data.achievements || '',
+          tshirtSize: data.preferredTshirtSize || '',
           cricHeroesPhone: data.cricHeroesPhone || '',
           cricHeroesMatchesPlayed: data.cricHeroesMatchesPlayed != null ? String(data.cricHeroesMatchesPlayed) : '0',
           cricHeroesTotalRuns: data.cricHeroesTotalRuns != null ? String(data.cricHeroesTotalRuns) : '0',
@@ -427,6 +443,7 @@ function CricketRegistration() {
       case 2: {
         const lucky = Number(formData.luckyNumber);
         return (
+          formData.tshirtSize &&
           formData.tshirtName &&
           Number.isInteger(lucky) &&
           lucky >= 1 &&
@@ -467,6 +484,8 @@ function CricketRegistration() {
       const payload = {
         ...formData,
         eventId: Number(eventId),
+        tshirtSize: formData.tshirtSize || null,
+        unavailableDates: formData.availableAllDays ? [] : formData.unavailableDates,
         sportsHistory: formData.sportsHistory.trim(),
         achievements: formData.achievements.trim(),
         cricHeroesPhone: formData.cricHeroesPhone.trim(),
@@ -974,6 +993,24 @@ function CricketRegistration() {
             (Number(formData.luckyNumber) < 1 || Number(formData.luckyNumber) > 999)
           }
         />
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <FormControl fullWidth required>
+          <InputLabel>Jersey Size</InputLabel>
+          <Select
+            name="tshirtSize"
+            value={formData.tshirtSize}
+            onChange={handleChange}
+            label="Jersey Size"
+          >
+            {jerseySizeOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Grid>
 
       <Grid item xs={12}>

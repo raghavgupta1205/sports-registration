@@ -2,8 +2,13 @@ package com.anpl.service;
 
 import com.anpl.dto.*;
 import com.anpl.model.EventRegistration;
+import com.anpl.model.Event;
+import com.anpl.model.PlayerProfile;
+import com.anpl.model.CricketPlayerSkills;
+import com.anpl.model.RegistrationStatus;
 import com.anpl.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -15,19 +20,20 @@ import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.anpl.repository.EventRegistrationRepository;
 import com.anpl.repository.EventRepository;
-import com.anpl.model.Event;
 import com.anpl.exception.ResourceNotFoundException;
 import com.anpl.exception.PaymentException;
 import com.anpl.repository.PaymentRepository;
+import com.anpl.repository.PlayerProfileRepository;
+import com.anpl.repository.CricketPlayerSkillsRepository;
 import com.anpl.model.Payment;
 import com.anpl.model.PaymentStatus;
-import com.anpl.model.RegistrationStatus;
 import java.util.Optional;
 import java.math.BigDecimal;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class RegistrationService {
     private final EventRegistrationRepository eventRegistrationRepository;
     private final EventRepository eventRepository;
@@ -36,6 +42,9 @@ public class RegistrationService {
     private final PaymentService paymentService;
     private final EventRegistrationService eventRegistrationService;
     private final PaymentRepository paymentRepository;
+    private final PlayerProfileRepository playerProfileRepository;
+    private final CricketPlayerSkillsRepository cricketPlayerSkillsRepository;
+    private final EmailService emailService;
 
     public OrderResponse createOrder(OrderRequest request) {
         // First validate the event exists
@@ -98,6 +107,8 @@ public class RegistrationService {
         EventRegistrationResponse registration = eventRegistrationService.getRegistrationById(
             request.getRegistrationId()
         );
+
+        sendCricketConfirmationIfApplicable(request.getRegistrationId());
         
         return RegistrationResponse.builder()
             .registrationId(registration.getId())
@@ -136,6 +147,8 @@ public class RegistrationService {
                     registration.setRegistrationStatus(RegistrationStatus.APPROVED);
                     paymentRepository.save(payment);
                     eventRegistrationRepository.save(registration);
+
+                    sendCricketConfirmationIfApplicable(registrationId);
                 }
             }
 
@@ -147,6 +160,37 @@ public class RegistrationService {
                 .build();
         } catch (RazorpayException e) {
             throw new PaymentException("Failed to check payment status: " + e.getMessage());
+        }
+    }
+
+    private void sendCricketConfirmationIfApplicable(Long registrationId) {
+        EventRegistration registration = eventRegistrationRepository.findById(registrationId).orElse(null);
+        if (registration == null) {
+            return;
+        }
+        if (registration.getRegistrationStatus() != RegistrationStatus.APPROVED) {
+            return;
+        }
+        Event event = registration.getEvent();
+        if (event == null || event.getEventType() == null || !event.getEventType().equalsIgnoreCase("CRICKET")) {
+            return;
+        }
+        try {
+            PlayerProfile profile = playerProfileRepository
+                    .findByUserIdAndSportType(registration.getUser().getId(), "CRICKET")
+                    .orElse(null);
+            CricketPlayerSkills skills = (profile != null)
+                    ? cricketPlayerSkillsRepository.findByPlayerProfileId(profile.getId()).orElse(null)
+                    : null;
+            emailService.sendCricketRegistrationEmail(
+                    registration.getUser(),
+                    event,
+                    registration,
+                    profile,
+                    skills);
+        } catch (Exception ex) {
+            log.warn("Failed to send cricket registration confirmation for registration {}: {}",
+                    registrationId, ex.getMessage());
         }
     }
 } 

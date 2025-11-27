@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cricket registration confirmation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f4f6fb;
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #0f1b2c;
+        }
+        .wrapper {
+            width: 100%;
+            padding: 32px 0;
+        }
+        .card {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 16px 45px rgba(15, 76, 129, 0.2);
+        }
+        .brand-bar {
+            padding: 26px 32px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .brand-bar img {
+            width: 58px;
+            height: 58px;
+            border-radius: 18px;
+            object-fit: cover;
+            border: 2px solid rgba(25, 118, 210, 0.2);
+        }
+        .brand-bar h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .hero {
+            height: 220px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 27, 44, 0.75), rgba(25, 118, 210, 0.65));
+        }
+        .hero-text {
+            position: absolute;
+            inset: 0;
+            padding: 36px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            color: #ffffff;
+            z-index: 1;
+        }
+        .hero-text h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+        .section {
+            padding: 30px 34px;
+            border-top: 1px solid rgba(15, 27, 44, 0.08);
+        }
+        .section:first-of-type {
+            border-top: none;
+        }
+        .section h3 {
+            margin: 0 0 16px;
+            font-size: 18px;
+            color: #0f4c81;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .info-card {
+            padding: 16px 18px;
+            border-radius: 14px;
+            background: rgba(15, 76, 129, 0.04);
+            border: 1px solid rgba(15, 76, 129, 0.08);
+        }
+        .info-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #63748c;
+        }
+        .info-card strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 16px;
+            color: #0f1b2c;
+        }
+        .footer {
+            padding: 24px 32px 32px;
+            text-align: center;
+            font-size: 13px;
+            color: #63748c;
+            border-top: 1px solid rgba(15, 27, 44, 0.08);
+        }
+        .footer strong {
+            color: #0f4c81;
+        }
+        @media (max-width: 520px) {
+            .section {
+                padding: 24px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .cta {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="card">
+            <div class="brand-bar">
+                <img th:src="${logoImage}" alt="[[${brandName}]] logo" />
+                <h1 th:text="${brandName}">ANPL Sports</h1>
+            </div>
+
+            <div class="hero" th:style="'background-image:url(' + ${heroImage} + ');'">
+                <div class="hero-text">
+                    <h2>Cricket tournament registration confirmed</h2>
+                    <p th:text="${event != null ? event.name : 'ANPL Cricket Tournament'}">Event Name</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Player overview</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <span>Player</span>
+                        <strong th:text="${user.fullName}">Player Name</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Registration ID</span>
+                        <strong th:text="${user.registrationNumber}">ANPL-001</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Category</span>
+                        <strong th:text="${registration != null && registration.registrationCategory != null ? registration.registrationCategory : 'N/A'}">LEGENDS</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Skill level</span>
+                        <strong th:text="${playerProfile != null ? playerProfile.skillLevel : 'N/A'}">Club</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Event summary</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <span>Event dates</span>
+                        <strong>
+                            <span th:text="${event != null && event.eventStartDate != null ? #temporals.format(event.eventStartDate, 'dd MMM yyyy') : 'TBA'}"></span>
+                            <span th:text="${event != null && event.eventEndDate != null ? ' - ' + #temporals.format(event.eventEndDate, 'dd MMM yyyy') : ''}"></span>
+                        </strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Venue</span>
+                        <strong th:text="${event != null ? event.location : 'Aggar Nagar'}">Aggar Nagar</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Jersey name & number</span>
+                        <strong>
+                            <span th:text="${registration != null && registration.tshirtName != null ? registration.tshirtName : 'Pending'}">ANPL</span>
+                            · #
+                            <span th:text="${registration != null && registration.jerseyNumber != null ? registration.jerseyNumber : '---'}">7</span>
+                        </strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Status</span>
+                        <strong th:text="${registration.registrationStatus}">PENDING</strong>
+                    </div>
+                </div>
+
+                <p style="margin-top: 18px; color: #2f3f55;">
+                    This confirms your official entry into the ANPL Cricket Tournament Registration pool. Selection mentors will now evaluate your role, CricHeroes record, and availability before assigning team slots.
+                </p>
+            </div>
+
+            <div class="section">
+                <h3>Cricket profile</h3>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <span>Primary role</span>
+                        <strong th:text="${cricketSkills != null ? cricketSkills.primaryRole : 'N/A'}">All-rounder</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Game preference</span>
+                        <strong th:text="${registration != null && registration.teamRole != null ? registration.teamRole : 'N/A'}">BATTING</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Captaincy</span>
+                        <strong th:text="${cricketSkills != null && cricketSkills.hasCaptaincyExperience ? 'Has experience' : 'No' }">Has experience</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>Wicket keeper</span>
+                        <strong th:text="${cricketSkills != null && cricketSkills.isWicketKeeper ? 'Yes' : 'No'}">Yes</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>CricHeroes matches</span>
+                        <strong th:text="${cricketSkills != null ? cricketSkills.cricHeroesMatchesPlayed : 0}">0</strong>
+                    </div>
+                    <div class="info-card">
+                        <span>CricHeroes strike rate</span>
+                        <strong th:text="${cricketSkills != null && cricketSkills.cricHeroesStrikeRate != null ? cricketSkills.cricHeroesStrikeRate : '--'}">0.0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>What happens next?</h3>
+                <p style="margin: 0 0 12px;">Our selection panel will verify your documents, past performance, and availability. Keep an eye on your inbox for squad announcements and payment confirmations.</p>
+                <ul style="padding-left: 18px; margin: 0; color: #34526d;">
+                    <li>Ensure your payment is completed before the deadline.</li>
+                    <li>Keep your Aadhaar and player photos handy for verification day.</li>
+                    <li>Respond promptly if the team requests additional stats.</li>
+                </ul>
+            </div>
+
+            <div class="footer">
+                <p style="margin-top: 10px;">© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2024</span> <span th:text="${brandName}">ANPL Sports</span>. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

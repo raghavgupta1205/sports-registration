@@ -151,9 +151,14 @@ const Dashboard = () => {
   const handleRegister = async (event) => {
     try {
         // CHECK IF IT'S A CRICKET EVENT - REDIRECT TO CRICKET REGISTRATION FORM
-      if (event.name && event.name.toLowerCase().includes('cricket')) {
+      if (event.eventType && event.eventType.toUpperCase() === 'CRICKET') {
         console.log('Cricket event detected - redirecting to cricket registration');
         navigate(`/cricket-registration/${event.id}`);
+        return;
+      }
+
+      if (event.eventType && event.eventType.toUpperCase() === 'BADMINTON') {
+        navigate(`/badminton-registration/${event.id}`);
         return;
       }
 

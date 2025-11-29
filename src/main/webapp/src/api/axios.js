@@ -69,5 +69,22 @@ const adminApi = {
         api.patch(`/admin/registrations/${id}`, { status })
 };
 
-export { authApi, registrationApi, adminApi };
+const uploadBadmintonFile = (path, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/badminton/registrations/upload/${path}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+
+const badmintonApi = {
+    getCategories: (eventId) => api.get(`/badminton/events/${eventId}/categories`),
+    getRegistration: (eventId) => api.get(`/badminton/registrations/event/${eventId}`),
+    completeRegistration: (payload) => api.post('/badminton/registrations/complete', payload),
+    uploadAadhaarFront: (file) => uploadBadmintonFile('aadhaar-front', file),
+    uploadAadhaarBack: (file) => uploadBadmintonFile('aadhaar-back', file),
+    uploadPlayerPhoto: (file) => uploadBadmintonFile('player-photo', file)
+};
+
+export { authApi, registrationApi, adminApi, badmintonApi };
 export default api; 

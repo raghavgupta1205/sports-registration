@@ -29,23 +29,9 @@ import {
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import api from '../api/axios';
+import { cricketTournamentRules } from '../constants/registrationRules';
 
 const steps = ['Upload Documents', 'Player Background', 'Jersey & Terms'];
-
-const termsContent = [
-  'Only permanent residents of Aggar Nagar who own a house, booth, SCO, or SCF in their name or in the name of their immediate family members (father, mother, grandmother, grandfather, son, or wife) are eligible to participate. Participants must provide a downloaded Aadhaar card (downloaded on the current date) displaying their Aggar Nagar address as proof of residency. Individuals or their immediate family members who have sold their property in Aggar Nagar are ineligible, even if their Aadhaar card still lists an Aggar Nagar address.',
-  'The ANPL Organizers reserve the right to request additional proof of residency. Players may be asked to provide supporting documents. Failure or refusal to present these documents will lead to disqualification.',
-  'The tournament registration fee is non-refundable under any circumstances.',
-  'Once a player is selected for a team, they must remain with that team for the duration of the tournament. Players who withdraw will be disqualified and the team must continue with the remaining players.',
-  'If any player leaves the team for any reason after it has been formed, no new members will be allowed to replace them. The remaining players must continue to play. However, the organizers reserve the right to assign a new member to the team, and this decision cannot be opposed by any player, captain, sponsor, or team owner.',
-  'The ANPL organizers’ decisions will be final. No disputes will be entertained; any player, member, or captain who argues will be disqualified, and the entire team may also face disqualification.',
-  <>Registration will be accepted on a <strong>first-come, first-serve basis.</strong></>,
-  <>Players must upload a <strong>recent picture with a plain background.</strong></>,
-  <>Final eligibility is <strong>subject to approval</strong> by the <strong>ANPL Organisers.</strong></>,
-  <>All participants are expected to maintain <strong>sportsman spirit and discipline.</strong> The <strong>ANPL Organisers</strong> reserve full rights to disqualify any player or team in case of misbehaviour on the field or misconduct with match officials or fellow players.</>,
-  <><strong>Players</strong> will be categorized as per auction criteria.</>,
-  <>By registering, every player <strong>agrees to abide by all ANPL Cricket Tournament Rules &amp; Regulations</strong> and acknowledges that the <strong>ANPL Organisers’ decision will be final and binding</strong> in all matters related to the tournament.</>
-];
 
 const categoryOptions = [
   { value: 'JUNIORS', label: 'Juniors (8-14)' },
@@ -1027,7 +1013,7 @@ function CricketRegistration() {
             mb: 2
           }}
         >
-          {termsContent.map((text, index) => (
+          {cricketTournamentRules.map((text, index) => (
             <Typography key={index} variant="body2" sx={{ mb: 1.5, whiteSpace: 'pre-line' }}>
               {text}
             </Typography>

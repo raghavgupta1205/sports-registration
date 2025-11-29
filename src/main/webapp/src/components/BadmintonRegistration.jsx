@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Container,
   Box,
@@ -8,1159 +7,1091 @@ import {
   Step,
   StepLabel,
   Paper,
-  Button,
-  Alert,
   Grid,
   Card,
   CardContent,
+  CardActions,
+  Button,
+  Alert,
   CircularProgress,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  ListItemIcon,
   Divider,
-  RadioGroup,
-  Radio,
-  FormControlLabel,
   Checkbox,
-  IconButton,
-  Tooltip,
-  FormGroup
+  FormControlLabel,
+  Stack,
+  Avatar,
+  Chip,
+  Tooltip
 } from '@mui/material';
-import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon, AddCircleOutline as AddIcon } from '@mui/icons-material';
-import api, { badmintonApi } from '../api/axios';
+import {
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon
+} from '@mui/icons-material';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api, { badmintonApi, userApi } from '../api/axios';
+import { cricketTournamentRules } from '../constants/registrationRules';
 
-const steps = ['Upload Documents', 'Select Categories', 'Jersey & Payment'];
+const steps = ['Player Photo', 'Select Categories', 'Review & Pay'];
 const MAX_FILE_SIZE_MB = 5;
-
-const termsContent = [
-  'Only permanent residents of Aggar Nagar who own a house, booth, SCO, or SCF in their name or in the name of their immediate family members (father, mother, grandmother, grandfather, son, or wife) are eligible to participate. Participants must provide a downloaded Aadhaar card (downloaded on the current date) displaying their Aggar Nagar address as proof of residency. Individuals or their immediate family members who have sold their property in Aggar Nagar are ineligible, even if their Aadhaar card still lists an Aggar Nagar address.',
-  'The ANPL Organizers reserve the right to request additional proof of residency. Players may be asked to provide supporting documents. Failure or refusal to present these documents will lead to disqualification.',
-  'The tournament registration fee is non-refundable under any circumstances.',
-  'Once a player is selected for a team, they must remain with that team for the duration of the tournament. Players who withdraw will be disqualified and the team must continue with the remaining players.',
-  'If any player leaves the team for any reason after it has been formed, no new members will be allowed to replace them. The remaining players must continue to play. However, the organizers reserve the right to assign a new member to the team, and this decision cannot be opposed by any player, captain, sponsor, or team owner.',
-  'The ANPL organizers’ decisions will be final. No disputes will be entertained; any player, member, or captain who argues will be disqualified, and the entire team may also face disqualification.',
-  <>Registration will be accepted on a <strong>first-come, first-serve basis.</strong></>,
-  <>Players must upload a <strong>recent picture with a plain background.</strong></>,
-  <>Final eligibility is <strong>subject to approval</strong> by the <strong>ANPL Organisers.</strong></>,
-  <>All participants are expected to maintain <strong>sportsman spirit and discipline.</strong> The <strong>ANPL Organisers</strong> reserve full rights to disqualify any player or team in case of misbehaviour on the field or misconduct with match officials or fellow players.</>,
-  <><strong>Players</strong> will be categorized as per tournament criteria.</>,
-  <>By registering, every player <strong>agrees to abide by all ANPL Tournament Rules &amp; Regulations</strong> and acknowledges that the <strong>ANPL Organisers’ decision will be final and binding</strong> in all matters related to the tournament.</>
-];
-
-const jerseySizeOptions = [
-  { value: 'M', label: 'M' },
-  { value: 'L', label: 'L' },
-  { value: 'XL', label: 'XL' },
-  { value: 'SIZE_2XL', label: '2XL' },
-  { value: 'SIZE_3XL', label: '3XL' },
-  { value: 'SIZE_4XL', label: '4XL' },
-  { value: 'SIZE_5XL', label: '5XL' },
-  { value: 'SIZE_30', label: '30' },
-  { value: 'SIZE_32', label: '32' },
-  { value: 'SIZE_34', label: '34' },
-  { value: 'SIZE_36', label: '36' }
-];
-
-const dateLabelFormatter = new Intl.DateTimeFormat('en-IN', {
-  weekday: 'short',
-  day: '2-digit',
-  month: 'long',
-  year: 'numeric'
-});
-
-const buildEventDateOptions = (startDate, endDate) => {
-  if (!startDate || !endDate) return [];
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
-    return [];
-  }
-  const options = [];
-  const cursor = new Date(start);
-  while (cursor <= end) {
-    const iso = cursor.toISOString().split('T')[0];
-    options.push({ value: iso, label: dateLabelFormatter.format(cursor) });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return options;
-};
 
 const getFileUrl = (path = '') => {
   if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/')) {
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  if (path.startsWith('/')) {
     return path;
   }
   return `/uploads/${path}`;
 };
 
-const isImagePath = (path = '') => /\.(png|jpe?g|gif|webp)$/i.test(path);
-const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-const formatCurrency = (amount = 0) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-
-const formatRelationLabel = (value = '') =>
-  value
-    .split(/[_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ');
-
-const calculateAge = (dobString) => {
-  if (!dobString) {
-    return null;
-  }
-  const dob = new Date(dobString);
-  if (Number.isNaN(dob.getTime())) {
-    return null;
-  }
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDiff = today.getMonth() - dob.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-    age -= 1;
-  }
-  return age > 0 ? age : null;
+const formatGenderLabel = (value) => {
+  if (!value) return '';
+  const lower = value.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
 };
 
-function BadmintonRegistration() {
+const FAMILY_RELATIONS = {
+  'Husband & Wife': [
+    { self: 'Husband', partner: 'Wife', selfGender: 'MALE', partnerGender: 'FEMALE' },
+    { self: 'Wife', partner: 'Husband', selfGender: 'FEMALE', partnerGender: 'MALE' }
+  ],
+  'Father Daughter': [
+    { self: 'Father', partner: 'Daughter', selfGender: 'MALE', partnerGender: 'FEMALE' },
+    { self: 'Daughter', partner: 'Father', selfGender: 'FEMALE', partnerGender: 'MALE' }
+  ],
+  'Mother Daughter': [
+    { self: 'Mother', partner: 'Daughter', selfGender: 'FEMALE', partnerGender: 'FEMALE' },
+    { self: 'Daughter', partner: 'Mother', selfGender: 'FEMALE', partnerGender: 'FEMALE' }
+  ],
+  'Mother Son': [
+    { self: 'Mother', partner: 'Son', selfGender: 'FEMALE', partnerGender: 'MALE' },
+    { self: 'Son', partner: 'Mother', selfGender: 'MALE', partnerGender: 'FEMALE' }
+  ],
+  'Saas Bahu': [
+    { self: 'Saas', partner: 'Bahu', selfGender: 'FEMALE', partnerGender: 'FEMALE' },
+    { self: 'Bahu', partner: 'Saas', selfGender: 'FEMALE', partnerGender: 'FEMALE' }
+  ],
+  'Father Son 15+': [
+    { self: 'Father', partner: 'Son', selfGender: 'MALE', partnerGender: 'MALE' },
+    { self: 'Son', partner: 'Father', selfGender: 'MALE', partnerGender: 'MALE' }
+  ],
+  'Father Son U15': [
+    { self: 'Father', partner: 'Son', selfGender: 'MALE', partnerGender: 'MALE' },
+    { self: 'Son', partner: 'Father', selfGender: 'MALE', partnerGender: 'MALE' }
+  ]
+};
+
+const getFamilyRelationMeta = (category, selfRelation) => {
+  const options = FAMILY_RELATIONS[category] || [];
+  return options.find((option) => option.self === selfRelation) || null;
+};
+
+const relationPartnerMap = (category, selfRelation) =>
+  getFamilyRelationMeta(category, selfRelation)?.partner || '';
+
+const hasUploadedAadhaar = (userRecord) => {
+  if (!userRecord) {
+    return false;
+  }
+  if (typeof userRecord.hasAadhaarDocuments === 'boolean') {
+    return userRecord.hasAadhaarDocuments;
+  }
+  return Boolean(userRecord.aadhaarFrontPhoto && userRecord.aadhaarBackPhoto);
+};
+
+const detectGenderRequirement = (categoryName = '', categoryType) => {
+  if (!categoryName || categoryType === 'FAMILY') return null;
+  const lower = categoryName.toLowerCase();
+  if (lower.includes('women') || lower.includes('womens') || lower.includes('girl') || lower.includes('ladies') || lower.includes('female')) {
+    return 'FEMALE';
+  }
+  if (
+    lower.includes('boys') ||
+    lower.includes("men's") ||
+    lower.includes('mens') ||
+    lower.startsWith('men ') ||
+    lower.startsWith('men\'') ||
+    lower.includes(' men ') ||
+    lower.includes(' male')
+  ) {
+    return 'MALE';
+  }
+  return null;
+};
+
+const describeAgeLimit = (ageLimit = '') => {
+  if (!ageLimit || ageLimit.trim().toUpperCase() === 'OPEN') {
+    return 'Open category';
+  }
+  const normalized = ageLimit.trim().toUpperCase();
+  if (normalized.startsWith('U')) {
+    return `Under ${normalized.substring(1).replace(/[^0-9]/g, '')}`;
+  }
+  if (normalized.endsWith('+')) {
+    return `${normalized.replace('+', '')}+ years`;
+  }
+  return ageLimit;
+};
+
+const evaluateAgeEligibility = (ageLimit, age) => {
+  if (!ageLimit || age === null || age === undefined || Number.isNaN(age)) {
+    return { eligible: true, label: describeAgeLimit(ageLimit) };
+  }
+  const normalized = ageLimit.trim().toUpperCase();
+  if (normalized === 'OPEN') {
+    return { eligible: true, label: describeAgeLimit(ageLimit) };
+  }
+  if (normalized.startsWith('U')) {
+    const limit = parseInt(normalized.substring(1).replace(/[^0-9]/g, ''), 10);
+    if (Number.isNaN(limit)) {
+      return { eligible: true, label: describeAgeLimit(ageLimit) };
+    }
+    return { eligible: age <= limit, label: `Under ${limit}` };
+  }
+  if (normalized.endsWith('+')) {
+    const min = parseInt(normalized.replace('+', '').replace(/[^0-9]/g, ''), 10);
+    if (Number.isNaN(min)) {
+      return { eligible: true, label: describeAgeLimit(ageLimit) };
+    }
+    return { eligible: age >= min, label: `${min}+ years` };
+  }
+  return { eligible: true, label: ageLimit };
+};
+
+const calcAge = (dateString) => {
+  if (!dateString) return null;
+  const dob = new Date(dateString);
+  if (Number.isNaN(dob)) return null;
+  const diff = Date.now() - dob.getTime();
+  return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+};
+
+const BadmintonRegistration = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const userAge = useMemo(() => calculateAge(user?.dateOfBirth), [user]);
-  const defaultSelfName = user?.fullName || '';
-  const defaultSelfAge = userAge ? String(userAge) : '';
-  const userContactNumber = user?.whatsappNumber || user?.phoneNumber || '';
-
-  const [activeStep, setActiveStep] = useState(0);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [event, setEvent] = useState(null);
-  const [eventDates, setEventDates] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [existingData, setExistingData] = useState(null);
-  const [pendingCategoryCode, setPendingCategoryCode] = useState('');
-  const [uploading, setUploading] = useState({});
-  const [categoryForms, setCategoryForms] = useState([]);
-  const [previews, setPreviews] = useState({
-    aadhaarFrontPhoto: '',
-    aadhaarBackPhoto: '',
-    playerPhoto: ''
+  const [activeStep, setActiveStep] = useState(0);
+  const [playerPhoto, setPlayerPhoto] = useState('');
+  const [playerPhotoPreview, setPlayerPhotoPreview] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [selectedEntries, setSelectedEntries] = useState([]);
+  const [dialogState, setDialogState] = useState({
+    open: false,
+    category: null,
+    partnerQuery: '',
+    searchResults: [],
+    selectedPartner: null,
+    selfRelation: ''
   });
-  const previewUrlsRef = useRef({});
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [photoPrefilled, setPhotoPrefilled] = useState(false);
 
-  const [formData, setFormData] = useState({
-    tshirtSize: user?.preferredTshirtSize || '',
-    aadhaarFrontPhoto: '',
-    aadhaarBackPhoto: '',
-    playerPhoto: '',
-    tshirtName: '',
-    jerseyNumber: '',
-    availableAllDays: true,
-    unavailableDates: [],
-    termsAccepted: false
-  });
+  const playerAge = useMemo(() => calcAge(user?.dateOfBirth), [user]);
+  const playerGender = user?.gender || null;
+  const playerGenderCode = playerGender ? playerGender.toUpperCase() : null;
+  const selectedFamilyMeta = useMemo(() => {
+    if (dialogState.category?.categoryType !== 'FAMILY' || !dialogState.selfRelation) {
+      return null;
+    }
+    return getFamilyRelationMeta(dialogState.category.name, dialogState.selfRelation);
+  }, [dialogState.category, dialogState.selfRelation]);
+  const relationGenderWarning = useMemo(() => {
+    if (!selectedFamilyMeta || !selectedFamilyMeta.selfGender) {
+      return null;
+    }
+    if (!playerGenderCode) {
+      return 'Please update your gender in profile to select this relation.';
+    }
+    if (selectedFamilyMeta.selfGender !== playerGenderCode) {
+      return `Selected relation requires a ${selectedFamilyMeta.selfGender.toLowerCase()} player.`;
+    }
+    return null;
+  }, [selectedFamilyMeta, playerGenderCode]);
+  const isFamilyDialog = dialogState.category?.categoryType === 'FAMILY';
+  const isPartnerSearchTemporarilyDisabled =
+    isFamilyDialog && (!dialogState.selfRelation || !!relationGenderWarning);
+  const resolvedPlayerPhoto = useMemo(
+    () => playerPhotoPreview || getFileUrl(playerPhoto),
+    [playerPhotoPreview, playerPhoto]
+  );
 
   useEffect(() => {
-    return () => {
-      Object.values(previewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
       try {
-        setInitialLoading(true);
-        setError('');
-
-        const [eventRes, categoryRes, registrationRes] = await Promise.all([
+        setLoading(true);
+        const [eventResp, categoryResp] = await Promise.all([
           api.get(`/events/${eventId}`),
-          badmintonApi.getCategories(eventId),
-          badmintonApi.getRegistration(eventId)
+          badmintonApi.getCategories()
         ]);
-
-        const eventData = eventRes.data.data;
-        setEvent(eventData);
-        setEventDates(buildEventDateOptions(eventData?.eventStartDate, eventData?.eventEndDate));
-
-        const categoryList = categoryRes.data.data || [];
-        setCategories(categoryList);
-
-        const registration = registrationRes.data.data;
-        if (registration) {
-          hydrateFromRegistration(registration, categoryList);
-        } else {
-          setExistingData(null);
-          setCategoryForms([]);
-          setFormData((prev) => ({
-            ...prev,
-            aadhaarFrontPhoto: user?.aadhaarFrontPhoto || '',
-            aadhaarBackPhoto: user?.aadhaarBackPhoto || '',
-            playerPhoto: user?.playerPhoto || ''
-          }));
-        }
+        setEvent(eventResp.data.data);
+        setCategories(categoryResp.data.data || []);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load badminton registration');
       } finally {
-        setInitialLoading(false);
+        setLoading(false);
       }
     };
+    fetchData();
+  }, [eventId]);
 
-    loadData();
-  }, [eventId, user]);
+  useEffect(() => {
+    if (photoPrefilled || !user?.playerPhoto) {
+      return;
+    }
+    const url = getFileUrl(user.playerPhoto);
+    setPlayerPhoto(user.playerPhoto);
+    setPlayerPhotoPreview(url);
+    setPhotoPrefilled(true);
+  }, [user, photoPrefilled]);
 
-  const hydrateFromRegistration = (data, categoryList) => {
-    setExistingData(data);
-    setFormData((prev) => ({
-      ...prev,
-      tshirtSize: data.tshirtSize || prev.tshirtSize || '',
-      aadhaarFrontPhoto: data.aadhaarFrontPhoto || prev.aadhaarFrontPhoto || '',
-      aadhaarBackPhoto: data.aadhaarBackPhoto || prev.aadhaarBackPhoto || '',
-      playerPhoto: data.playerPhoto || prev.playerPhoto || '',
-      tshirtName: data.tshirtName || prev.tshirtName || '',
-      jerseyNumber: data.jerseyNumber ? String(data.jerseyNumber) : prev.jerseyNumber,
-      availableAllDays: typeof data.availableAllDays === 'boolean' ? data.availableAllDays : true,
-      unavailableDates: data.unavailableDates || [],
-      termsAccepted: false
-    }));
-
-    const selectionEntries = (data.selectedCategories || []).map((entry) => ({
-      id: createEntryId(),
-      categoryCode: entry.categoryCode,
-      primaryPlayerName: entry.primaryPlayerName || user?.fullName || '',
-      primaryPlayerAge: entry.primaryPlayerAge?.toString() || '',
-      primaryPlayerRelation: entry.primaryPlayerRelation || 'SELF',
-      partnerPlayerName: entry.partnerPlayerName || '',
-      partnerPlayerAge: entry.partnerPlayerAge ? entry.partnerPlayerAge.toString() : '',
-      partnerPlayerRelation: entry.partnerPlayerRelation || '',
-      notes: entry.notes || ''
-    }));
-
-    setCategoryForms(selectionEntries);
-
-    if (selectionEntries.length === 0 && categoryList?.length) {
-      setPendingCategoryCode(categoryList[0].code);
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setError(`File size must be under ${MAX_FILE_SIZE_MB}MB`);
+      return;
+    }
+    setUploading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await badmintonApi.uploadPlayerPhoto(formData);
+      setPlayerPhoto(response.data.data.filePath);
+      if (playerPhotoPreview && playerPhotoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(playerPhotoPreview);
+      }
+      setPlayerPhotoPreview(URL.createObjectURL(file));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const categoryMap = useMemo(() => {
-    const map = {};
-    categories.forEach((cat) => {
-      map[cat.code] = cat;
+  const openCategoryDialog = (category) => {
+    if (selectedEntries.find((entry) => entry.categoryId === category.id)) {
+      setError('You have already selected this category');
+      return;
+    }
+    if (category.categoryType === 'SOLO') {
+      addEntry({
+        categoryId: category.id,
+        categoryName: category.name,
+        categoryType: category.categoryType,
+        pricePerPlayer: category.pricePerPlayer
+      });
+      return;
+    }
+    setDialogState({
+      open: true,
+      category,
+      partnerQuery: '',
+      searchResults: [],
+      selectedPartner: null,
+      selfRelation: ''
     });
-    return map;
-  }, [categories]);
+  };
 
-  const getRelationOptionsForCategory = (categoryCode) =>
-    categoryMap[categoryCode]?.relationOptions || [];
+  const closeCategoryDialog = () => {
+    setDialogState((prev) => ({
+      ...prev,
+      open: false,
+      category: null,
+      partnerQuery: '',
+      searchResults: [],
+      selectedPartner: null,
+      selfRelation: ''
+    }));
+  };
 
-  const availableCategoryOptions = useMemo(() => {
-    return categories.filter(
-      (cat) => !categoryForms.some((entry) => entry.categoryCode === cat.code)
-    );
-  }, [categories, categoryForms]);
+  const handlePartnerSearch = async (value) => {
+    setDialogState((prev) => ({ ...prev, partnerQuery: value }));
+    if (!value || value.trim().length < 2) {
+      setDialogState((prev) => ({ ...prev, searchResults: [] }));
+      setSearchLoading(false);
+      return;
+    }
+    try {
+      setSearchLoading(true);
+      const response = await userApi.search(value.trim());
+      setDialogState((prev) => ({ ...prev, searchResults: response.data.data || [] }));
+    } catch (err) {
+      console.error('Search failed', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    if (availableCategoryOptions.length === 0) {
-      setPendingCategoryCode('');
+  const addEntry = (entry) => {
+    setSelectedEntries((prev) => [...prev, entry]);
+    setError('');
+  };
+
+  const handleDialogSave = () => {
+    const { category, selectedPartner, selfRelation } = dialogState;
+    if (!category) return;
+    if (category.categoryType === 'DOUBLE' && !selectedPartner) {
+      setError('Please select a partner');
       return;
     }
     if (
-      !pendingCategoryCode ||
-      !availableCategoryOptions.some((option) => option.code === pendingCategoryCode)
+      category.categoryType === 'DOUBLE' &&
+      !hasUploadedAadhaar(selectedPartner)
     ) {
-      setPendingCategoryCode(availableCategoryOptions[0].code);
+      setError('Selected partner must upload Aadhaar front and back images before registering.');
+      return;
     }
-  }, [availableCategoryOptions, pendingCategoryCode]);
+    if (category.categoryType === 'FAMILY') {
+      if (!selfRelation) {
+        setError('Please select your relation');
+        return;
+      }
+      if (!selectedPartner) {
+        setError('Please select a partner');
+        return;
+      }
+      if (!hasUploadedAadhaar(selectedPartner)) {
+        setError('Selected partner must upload Aadhaar front and back images before registering.');
+        return;
+      }
+      const relationMeta = getFamilyRelationMeta(category.name, selfRelation);
+      if (!relationMeta) {
+        setError('Invalid relation selected');
+        return;
+      }
+      if (relationMeta.selfGender) {
+        if (!playerGenderCode) {
+          setError('Please update your gender in profile to select this relation.');
+          return;
+        }
+        if (relationMeta.selfGender !== playerGenderCode) {
+          setError(`Selected relation requires a ${relationMeta.selfGender.toLowerCase()} player.`);
+          return;
+        }
+      }
+      if (relationMeta.partnerGender) {
+        const partnerGenderCode = selectedPartner.gender ? selectedPartner.gender.toUpperCase() : null;
+        if (!partnerGenderCode) {
+          setError('Selected partner must update their gender information to enroll in this relation.');
+          return;
+        }
+        if (partnerGenderCode !== relationMeta.partnerGender) {
+          setError(
+            `Selected partner must be ${relationMeta.partnerGender.toLowerCase()} for this relation.`
+          );
+          return;
+        }
+      }
+    }
 
-  const totalParticipants = useMemo(
-    () =>
-      categoryForms.reduce(
-        (sum, entry) => sum + (categoryMap[entry.categoryCode]?.participantsPerEntry || 1),
-        0
-      ),
-    [categoryForms, categoryMap]
-  );
+    let entryPayload = {
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryType: category.categoryType,
+      pricePerPlayer: category.pricePerPlayer
+    };
+
+    if (category.categoryType === 'DOUBLE') {
+      entryPayload = {
+        ...entryPayload,
+        partnerInfo: {
+          userId: selectedPartner.id,
+          fullName: selectedPartner.fullName,
+          age: calcAge(selectedPartner.dateOfBirth),
+          contactNumber: selectedPartner.phoneNumber
+        }
+      };
+    }
+
+    if (category.categoryType === 'FAMILY') {
+      const relationMeta = getFamilyRelationMeta(category.name, selfRelation);
+      entryPayload = {
+        ...entryPayload,
+        selfRelation,
+        partnerRelation: relationMeta?.partner || relationPartnerMap(category.name, selfRelation),
+        partnerInfo: {
+          userId: selectedPartner.id,
+          fullName: selectedPartner.fullName,
+          age: calcAge(selectedPartner.dateOfBirth),
+          contactNumber: selectedPartner.phoneNumber
+        }
+      };
+    }
+
+    addEntry(entryPayload);
+    closeCategoryDialog();
+  };
+
+  const handleRemoveEntry = (categoryId) => {
+    setSelectedEntries((prev) => prev.filter((entry) => entry.categoryId !== categoryId));
+  };
+
+  const PRICE_PER_PLAYER = 800;
+  const buildCategoryEligibility = (category) => {
+    const ageMeta = evaluateAgeEligibility(category.ageLimit, playerAge);
+    const genderRequirement = detectGenderRequirement(category.name, category.categoryType);
+    const genderEligible =
+      !genderRequirement || !playerGender || playerGender.toUpperCase() === genderRequirement;
+    return {
+      ageLabel: ageMeta.label,
+      ageEligible: ageMeta.eligible,
+      genderRequirement,
+      genderEligible
+    };
+  };
 
   const totalAmount = useMemo(() => {
-    if (!event?.price) return 0;
-    return totalParticipants * Number(event.price || 0);
-  }, [totalParticipants, event]);
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleJerseyChange = (e) => {
-    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 3);
-    setFormData((prev) => ({ ...prev, jerseyNumber: digitsOnly }));
-  };
-
-  const handleAvailabilityChange = (e) => {
-    const isAvailable = e.target.value === 'YES';
-    setFormData((prev) => ({
-      ...prev,
-      availableAllDays: isAvailable,
-      unavailableDates: isAvailable ? [] : prev.unavailableDates
-    }));
-  };
-
-  const handleUnavailableDateToggle = (dateValue) => {
-    setFormData((prev) => {
-      const exists = prev.unavailableDates.includes(dateValue);
-      return {
-        ...prev,
-        unavailableDates: exists
-          ? prev.unavailableDates.filter((d) => d !== dateValue)
-          : [...prev.unavailableDates, dateValue]
-      };
-    });
-  };
-
-  const handleAddCategory = () => {
-    if (!pendingCategoryCode || categoryForms.some((entry) => entry.categoryCode === pendingCategoryCode)) {
-      return;
-    }
-
-    const meta = categoryMap[pendingCategoryCode];
-    const relationOptions = meta?.categoryType === 'FAMILY' ? getRelationOptionsForCategory(pendingCategoryCode) : [];
-    const defaultRelation = relationOptions.length ? relationOptions[0] : null;
-
-    const newEntry = {
-      id: createEntryId(),
-      categoryCode: pendingCategoryCode,
-      primaryPlayerName: defaultSelfName,
-      primaryPlayerAge: defaultSelfAge,
-      primaryPlayerRelation: meta?.categoryType === 'FAMILY' ? defaultRelation?.selfRole || 'SELF' : '',
-      partnerPlayerName: '',
-      partnerPlayerAge: '',
-      partnerPlayerRelation: meta?.categoryType === 'FAMILY' ? defaultRelation?.partnerRole || '' : '',
-      notes: ''
-    };
-    setCategoryForms((prev) => [...prev, newEntry]);
-    setSuccess('');
-  };
-
-  const handleCategoryFieldChange = (id, field, value) => {
-    setCategoryForms((prev) =>
-      prev.map((entry) => (entry.id === id ? { ...entry, [field]: value } : entry))
-    );
-  };
-
-  const handleRelationSelection = (id, selectedSelfRole) => {
-    setCategoryForms((prev) =>
-      prev.map((entry) => {
-        if (entry.id !== id) {
-          return entry;
-        }
-        const relationOptions = getRelationOptionsForCategory(entry.categoryCode);
-        const matchedOption = relationOptions.find((option) => option.selfRole === selectedSelfRole);
-        return {
-          ...entry,
-          primaryPlayerRelation: selectedSelfRole,
-          partnerPlayerRelation: matchedOption?.partnerRole || entry.partnerPlayerRelation
-        };
-      })
-    );
-  };
-
-  const handleRemoveCategory = (id) => {
-    setCategoryForms((prev) => prev.filter((entry) => entry.id !== id));
-  };
-
-  const handleFileChange = async (event, field, uploadKey) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      setError(`File exceeds ${MAX_FILE_SIZE_MB}MB limit`);
-      return;
-    }
-    setUploading((prev) => ({ ...prev, [uploadKey]: true }));
-    setError('');
-
-    try {
-      let uploadFn = null;
-      if (field === 'aadhaarFrontPhoto') uploadFn = badmintonApi.uploadAadhaarFront;
-      if (field === 'aadhaarBackPhoto') uploadFn = badmintonApi.uploadAadhaarBack;
-      if (field === 'playerPhoto') uploadFn = badmintonApi.uploadPlayerPhoto;
-      if (!uploadFn) {
-        throw new Error('Unsupported upload field');
+    return selectedEntries.reduce((sum, entry) => {
+      const perPlayer = entry.pricePerPlayer || PRICE_PER_PLAYER;
+      if (entry.categoryType === 'SOLO') {
+        return sum + perPlayer;
       }
-
-      const response = await uploadFn(file);
-      const filePath = response.data.data.filePath;
-      setFormData((prev) => ({ ...prev, [field]: filePath }));
-
-      const previewUrl = URL.createObjectURL(file);
-      if (previewUrlsRef.current[field]) {
-        URL.revokeObjectURL(previewUrlsRef.current[field]);
-      }
-      previewUrlsRef.current[field] = previewUrl;
-      setPreviews((prev) => ({ ...prev, [field]: previewUrl }));
-      setSuccess('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to upload file');
-    } finally {
-      setUploading((prev) => ({ ...prev, [uploadKey]: false }));
-    }
-  };
-
-  const validateCategory = (entry) => {
-    const meta = categoryMap[entry.categoryCode];
-    if (!meta) return false;
-    if (!entry.primaryPlayerName?.trim()) return false;
-    const primaryAge = Number(entry.primaryPlayerAge);
-    if (!Number.isInteger(primaryAge) || primaryAge <= 0) return false;
-
-    if (meta.categoryType === 'FAMILY') {
-      if (!entry.primaryPlayerRelation?.trim()) return false;
-    }
-
-    if (meta.categoryType === 'DOUBLE' || meta.categoryType === 'FAMILY') {
-      if (!entry.partnerPlayerName?.trim()) return false;
-      const partnerAge = Number(entry.partnerPlayerAge);
-      if (!Number.isInteger(partnerAge) || partnerAge <= 0) return false;
-    }
-
-    if (meta.categoryType === 'FAMILY' && !entry.partnerPlayerRelation?.trim()) {
-      return false;
-    }
-    return true;
-  };
+      return sum + perPlayer * 2;
+    }, 0);
+  }, [selectedEntries]);
 
   const validateStep = (step) => {
-    switch (step) {
-      case 0: {
-        return (
-          formData.aadhaarFrontPhoto &&
-          formData.aadhaarBackPhoto &&
-          formData.playerPhoto
-        );
-      }
-      case 1: {
-        return categoryForms.length > 0 && categoryForms.every(validateCategory);
-      }
-      case 2: {
-        const jersey = Number(formData.jerseyNumber);
-        const requiresUnavailableSelection =
-          formData.availableAllDays === false && eventDates.length > 0;
-        return (
-          formData.tshirtName?.trim() &&
-          formData.tshirtSize &&
-          Number.isInteger(jersey) &&
-          jersey >= 1 &&
-          jersey <= 999 &&
-          formData.termsAccepted &&
-          (!requiresUnavailableSelection || formData.unavailableDates.length > 0)
-        );
-      }
-      default:
-        return false;
+    if (step === 0) {
+      return !!playerPhoto;
     }
+    if (step === 1) {
+      return selectedEntries.length > 0;
+    }
+    if (step === 2) {
+      return termsAccepted;
+    }
+    return false;
   };
 
   const handleNext = () => {
-    if (validateStep(activeStep)) {
-      setActiveStep((prev) => prev + 1);
-      setError('');
-      setSuccess('');
-    } else {
-      setError('Please fill all required fields correctly');
+    if (!validateStep(activeStep)) {
+      setError('Please complete the required fields');
+      return;
     }
+    setActiveStep((prev) => prev + 1);
+    setError('');
   };
 
   const handleBack = () => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
     setError('');
-    setSuccess('');
   };
 
-  const buildPayload = () => ({
-    eventId: Number(eventId),
-    gender: user?.gender || null,
-    tshirtSize: formData.tshirtSize || null,
-    residentialAddress: user?.residentialAddress || '',
-    whatsappNumber: userContactNumber || '',
-    aadhaarFrontPhoto: formData.aadhaarFrontPhoto,
-    aadhaarBackPhoto: formData.aadhaarBackPhoto,
-    playerPhoto: formData.playerPhoto,
-    tshirtName: formData.tshirtName.trim(),
-    jerseyNumber: Number(formData.jerseyNumber),
-    availableAllDays: formData.availableAllDays,
-    unavailableDates: formData.availableAllDays ? [] : formData.unavailableDates,
-    termsAccepted: formData.termsAccepted,
-    categories: categoryForms.map((entry) => {
-      const meta = categoryMap[entry.categoryCode];
-      const type = meta?.categoryType;
-      const requiresFamilyRelation = type === 'FAMILY';
-
-      return {
-        categoryCode: entry.categoryCode,
-        primaryPlayerName: entry.primaryPlayerName.trim(),
-        primaryPlayerAge: Number(entry.primaryPlayerAge),
-        primaryPlayerRelation: entry.primaryPlayerRelation?.trim() || 'SELF',
-        partnerPlayerName: entry.partnerPlayerName?.trim() || null,
-        partnerPlayerAge: entry.partnerPlayerAge ? Number(entry.partnerPlayerAge) : null,
-        partnerPlayerRelation: requiresFamilyRelation
-          ? entry.partnerPlayerRelation?.trim() || null
-          : null,
-        notes: entry.notes?.trim() || ''
+  const handleSubmit = async () => {
+    try {
+      if (!validateStep(2)) {
+        setError('Please accept terms and conditions');
+        return;
+      }
+      setError('');
+      const payload = {
+        eventId: Number(eventId),
+        entries: selectedEntries.map((entry) => ({
+          categoryId: entry.categoryId,
+          categoryType: entry.categoryType,
+          partnerInfo: entry.partnerInfo || null,
+          selfRelation: entry.selfRelation || null,
+          partnerRelation: entry.partnerRelation || null
+        })),
+        playerPhoto,
+        termsAccepted,
+        totalAmount
       };
-    })
-  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateStep(2)) {
-      setError('Please fill all required fields and accept the terms to continue');
-      return;
-    }
-
-    setSubmitting(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const payload = buildPayload();
-      const response = await badmintonApi.completeRegistration(payload);
-      const data = response.data.data;
-      setExistingData(data);
-      hydrateFromRegistration(data, categories);
-
-      if (data.readyForPayment && data.eventRegistrationId && data.totalPayableAmount > 0) {
-        await initiatePayment(data.eventRegistrationId, data.totalPayableAmount, data.eventName);
-      } else {
-        setSuccess('Registration saved. Complete all required details to proceed with payment.');
-        setSubmitting(false);
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to complete registration');
-      setSubmitting(false);
-    }
-  };
-
-  const initiatePayment = async (registrationId, amount, eventName) => {
-    try {
-      if (typeof window === 'undefined' || !window.Razorpay) {
-        throw new Error('Payment SDK is not loaded. Please refresh the page and try again.');
-      }
-
-      const paymentInit = await api.post('/payments/initiate', {
-        registrationId,
-        amount
-      });
-      const paymentData = paymentInit.data.data;
-      const orderId = paymentData.razorpayOrderId;
-      const payableAmount = Number(amount) * 100;
+      const response = await badmintonApi.submitBundle(payload);
+      const { bundleRegistrationId, totalAmount: amount } = response.data.data;
+      const orderResponse = await badmintonApi.createOrder(bundleRegistrationId);
+      const { orderId } = orderResponse.data.data;
 
       const options = {
         key: 'rzp_test_RgO20QqKKlOShG',
-        amount: payableAmount,
+        amount: amount * 100,
         currency: 'INR',
         name: 'ANPL Sports',
-        description: `Badminton registration for ${eventName || 'ANPL'}`,
+        description: `Badminton Registration - ${event?.name}`,
         order_id: orderId,
-        handler: async (paymentResult) => {
+        handler: async (res) => {
           try {
-            await api.post('/payments/verify', {
-              registrationId,
-              orderId: paymentResult.razorpay_order_id,
-              paymentId: paymentResult.razorpay_payment_id,
-              signature: paymentResult.razorpay_signature
+            await badmintonApi.verifyPayment({
+              bundleId: bundleRegistrationId,
+              orderId: res.razorpay_order_id,
+              paymentId: res.razorpay_payment_id,
+              signature: res.razorpay_signature
             });
             navigate('/dashboard', {
-              state: { message: 'Badminton registration and payment successful!' }
+              state: { message: 'Registration successful!' }
             });
           } catch (err) {
             setError(err.response?.data?.message || 'Payment verification failed');
-          } finally {
-            setSubmitting(false);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setSubmitting(false);
           }
         },
         prefill: {
-          name: user?.fullName || '',
-          email: user?.email || '',
-          contact: userContactNumber || user?.phoneNumber || ''
+          name: user.fullName,
+          email: user.email,
+          contact: user.phoneNumber
         },
-        theme: { color: '#1976d2' }
+        theme: {
+          color: '#1976d2'
+        }
       };
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to initiate payment');
-      setSubmitting(false);
+      setError(err.response?.data?.message || 'Registration failed');
     }
   };
 
-  const renderDocumentStep = () => (
+  const renderPhotoStep = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Alert severity="info">Upload clear documents (JPG/PNG/PDF up to {MAX_FILE_SIZE_MB}MB)</Alert>
-      </Grid>
-
-      {[
-        { id: 'aadhaar-front', label: 'Aadhaar Front', field: 'aadhaarFrontPhoto' },
-        { id: 'aadhaar-back', label: 'Aadhaar Back', field: 'aadhaarBackPhoto' },
-        { id: 'player-photo', label: 'Player Photo', field: 'playerPhoto', accept: 'image/*' }
-      ].map((item) => (
-        <Grid item xs={12} md={4} key={item.id}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {item.label}
-              </Typography>
-              <input
-                accept={item.accept || 'image/*,.pdf'}
-                style={{ display: 'none' }}
-                id={`${item.id}-upload`}
-                type="file"
-                onChange={(e) => handleFileChange(e, item.field, item.id)}
+      <Grid item xs={12} md={6}>
+        <Card sx={{ height: '100%', textAlign: 'center', p: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Player Photo
+            </Typography>
+            {resolvedPlayerPhoto ? (
+              <Box
+                component="img"
+                src={resolvedPlayerPhoto}
+                alt="Player preview"
+                sx={{
+                  width: '100%',
+                  maxWidth: 280,
+                  borderRadius: 3,
+                  mx: 'auto',
+                  mb: 3,
+                  boxShadow: 3,
+                  objectFit: 'cover'
+                }}
               />
-              <label htmlFor={`${item.id}-upload`}>
-                <Button
-                  variant="contained"
-                  component="span"
-                  fullWidth
-                  startIcon={uploading[item.id] ? <CircularProgress size={20} /> : <CloudUploadIcon />}
-                  disabled={uploading[item.id]}
-                >
-                  Upload
-                </Button>
-              </label>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-                JPG/PNG/PDF up to {MAX_FILE_SIZE_MB}MB
-              </Typography>
-
-              {(() => {
-                const previewValue = previews[item.field];
-                const storedValue = formData[item.field];
-                const storedUrl = storedValue ? getFileUrl(storedValue) : '';
-
-                if (previewValue) {
-                  return (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Preview:
-                      </Typography>
-                      <Box
-                        component="img"
-                        src={previewValue}
-                        alt={`${item.label} preview`}
-                        sx={{ width: '100%', maxHeight: 150, objectFit: 'cover', borderRadius: 1, mt: 0.5 }}
-                      />
-                    </Box>
-                  );
-                }
-
-                if (storedValue) {
-                  if (isImagePath(storedValue)) {
-                    return (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Saved file:
-                        </Typography>
-                        <Box
-                          component="img"
-                          src={storedUrl}
-                          alt={`${item.label} saved`}
-                          sx={{ width: '100%', maxHeight: 150, objectFit: 'cover', borderRadius: 1, mt: 0.5 }}
-                        />
-                      </Box>
-                    );
-                  }
-                  return (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Saved document{' '}
-                        <a href={storedUrl} target="_blank" rel="noopener noreferrer">
-                          (view)
-                        </a>
-                      </Typography>
-                    </Box>
-                  );
-                }
-
-                return null;
-              })()}
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-      <Grid item xs={12}>
-        <Alert severity="info">
-          Personal details (gender, contact number, address) will be picked automatically from your ANPL profile.
-        </Alert>
-      </Grid>
-    </Grid>
-  );
-
-  const renderCategoryStep = () => (
-    <Box>
-      <Alert severity="info" sx={{ mb: 3 }}>
-        Each category costs ₹{event?.price || 0} per participant. Double/Family categories cost ₹
-        {(event?.price || 0) * 2}.
-      </Alert>
-
-      <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} md={8}>
-          <FormControl fullWidth>
-            <InputLabel>Select Category</InputLabel>
-            <Select
-              label="Select Category"
-              value={pendingCategoryCode}
-              onChange={(e) => setPendingCategoryCode(e.target.value)}
-              disabled={availableCategoryOptions.length === 0}
-            >
-              {availableCategoryOptions.map((option) => (
-                <MenuItem key={option.code} value={option.code}>
-                  {option.displayName}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            fullWidth
-            onClick={handleAddCategory}
-            disabled={!pendingCategoryCode}
-          >
-            Add Category
-          </Button>
-        </Grid>
-      </Grid>
-
-      <Stack spacing={2} sx={{ mt: 3 }}>
-        {categoryForms.length === 0 && (
-          <Alert severity="warning">Add at least one category to continue.</Alert>
-        )}
-
-        {categoryForms.map((entry) => {
-          const meta = categoryMap[entry.categoryCode];
-          const typeLabel = meta?.categoryType || 'SOLO';
-          const relationOptionsForCategory = getRelationOptionsForCategory(entry.categoryCode);
-          const hasPredefinedRelations = relationOptionsForCategory.length > 0;
-          const matchedRelation = relationOptionsForCategory.find(
-            (option) => option.selfRole === entry.primaryPlayerRelation
-          );
-          const partnerRelationDisplay = hasPredefinedRelations
-            ? matchedRelation?.partnerRole || relationOptionsForCategory[0].partnerRole
-            : entry.partnerPlayerRelation;
-          return (
-            <Paper key={entry.id} sx={{ p: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-                <Box>
-                  <Typography variant="h6">{meta?.displayName || 'Category'}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {typeLabel === 'SOLO'
-                      ? 'Solo entry'
-                      : typeLabel === 'DOUBLE'
-                      ? 'Requires partner details'
-                      : 'Requires partner & relation details'}
-                  </Typography>
-                </Box>
-                <Box display="flex" gap={1} alignItems="center">
-                  <Chip label={typeLabel} color={typeLabel === 'SOLO' ? 'default' : typeLabel === 'DOUBLE' ? 'primary' : 'secondary'} />
-                  <Tooltip title="Remove category">
-                    <IconButton color="error" onClick={() => handleRemoveCategory(entry.id)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Player Name"
-                    value={entry.primaryPlayerName}
-                    onChange={(e) => handleCategoryFieldChange(entry.id, 'primaryPlayerName', e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Age"
-                    value={entry.primaryPlayerAge}
-                    onChange={(e) =>
-                      handleCategoryFieldChange(entry.id, 'primaryPlayerAge', e.target.value.replace(/\D/g, ''))
-                    }
-                    inputProps={{ inputMode: 'numeric' }}
-                  />
-                </Grid>
-                {meta?.categoryType === 'FAMILY' && (
-                  <Grid item xs={12} md={3}>
-                    {hasPredefinedRelations ? (
-                      <FormControl fullWidth required>
-                        <InputLabel>Your Relation</InputLabel>
-                        <Select
-                          label="Your Relation"
-                          value={entry.primaryPlayerRelation || relationOptionsForCategory[0].selfRole}
-                          onChange={(e) => handleRelationSelection(entry.id, e.target.value)}
-                        >
-                          {relationOptionsForCategory.map((option) => (
-                            <MenuItem key={option.selfRole} value={option.selfRole}>
-                              {formatRelationLabel(option.selfRole)}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    ) : (
-                      <TextField
-                        fullWidth
-                        required
-                        label="Relation"
-                        value={entry.primaryPlayerRelation}
-                        onChange={(e) => handleCategoryFieldChange(entry.id, 'primaryPlayerRelation', e.target.value)}
-                        helperText="E.g., SELF"
-                      />
-                    )}
-                  </Grid>
-                )}
-
-                {(meta?.categoryType === 'DOUBLE' || meta?.categoryType === 'FAMILY') && (
-                  <>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        required
-                        label={meta?.categoryType === 'FAMILY' ? 'Family Partner Name' : 'Partner Name'}
-                        value={entry.partnerPlayerName}
-                        onChange={(e) =>
-                          handleCategoryFieldChange(entry.id, 'partnerPlayerName', e.target.value)
-                        }
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Partner Age"
-                        value={entry.partnerPlayerAge}
-                        onChange={(e) =>
-                          handleCategoryFieldChange(entry.id, 'partnerPlayerAge', e.target.value.replace(/\D/g, ''))
-                        }
-                        inputProps={{ inputMode: 'numeric' }}
-                      />
-                    </Grid>
-                    {meta?.categoryType === 'FAMILY' && (
-                      <Grid item xs={12} md={3}>
-                        {hasPredefinedRelations ? (
-                          <TextField
-                            fullWidth
-                            label="Partner Relation"
-                            value={partnerRelationDisplay ? formatRelationLabel(partnerRelationDisplay) : ''}
-                            InputProps={{ readOnly: true }}
-                          />
-                        ) : (
-                          <TextField
-                            fullWidth
-                            required
-                            label="Partner Relation"
-                            value={entry.partnerPlayerRelation}
-                            onChange={(e) =>
-                              handleCategoryFieldChange(entry.id, 'partnerPlayerRelation', e.target.value)
-                            }
-                            helperText="E.g., HUSBAND"
-                          />
-                        )}
-                      </Grid>
-                    )}
-                  </>
-                )}
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Notes / Preferences"
-                    value={entry.notes}
-                    onChange={(e) => handleCategoryFieldChange(entry.id, 'notes', e.target.value)}
-                    multiline
-                    minRows={2}
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
-          );
-        })}
-      </Stack>
-
-      <Paper variant="outlined" sx={{ mt: 4, p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Summary
-        </Typography>
-        <Stack spacing={1}>
-          <Typography variant="body2">
-            Categories selected: <strong>{categoryForms.length}</strong>
-          </Typography>
-          <Typography variant="body2">
-            Total participants: <strong>{totalParticipants}</strong>
-          </Typography>
-          <Typography variant="h6">
-            Total Amount: {formatCurrency(totalAmount)}
-          </Typography>
-        </Stack>
-      </Paper>
-    </Box>
-  );
-
-  const renderJerseyStep = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
-        <TextField
-          fullWidth
-          required
-          label="Name for Jersey"
-          name="tshirtName"
-          value={formData.tshirtName}
-          onChange={handleInputChange}
-          helperText="Letters only"
-          inputProps={{ maxLength: 50 }}
-          onInput={(e) => {
-            e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-          }}
-        />
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <TextField
-          fullWidth
-          required
-          label="Jersey Number (1-999)"
-          name="jerseyNumber"
-          value={formData.jerseyNumber}
-          onChange={handleJerseyChange}
-          inputProps={{ maxLength: 3, inputMode: 'numeric' }}
-        />
-      </Grid>
-
-      <Grid item xs={12} md={6}>
-        <FormControl fullWidth required>
-          <InputLabel>Jersey Size</InputLabel>
-          <Select name="tshirtSize" value={formData.tshirtSize} onChange={handleInputChange} label="Jersey Size">
-            {jerseySizeOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12}>
-        <Typography variant="subtitle1" gutterBottom>
-          Are you available on all days of the tournament{' '}
-          {eventDates.length > 0
-            ? `(${eventDates[0].label} to ${eventDates[eventDates.length - 1].label})`
-            : '(dates will be announced soon)'}
-          ?
-        </Typography>
-        <RadioGroup
-          row
-          value={formData.availableAllDays ? 'YES' : 'NO'}
-          onChange={handleAvailabilityChange}
-          name="availabilityGroup"
-        >
-          <FormControlLabel value="YES" control={<Radio />} label="Yes" />
-          <FormControlLabel value="NO" control={<Radio />} label="No" />
-        </RadioGroup>
-      </Grid>
-
-      {formData.availableAllDays === false && (
-        <Grid item xs={12}>
-          {eventDates.length === 0 ? (
-            <Alert severity="warning">
-              Tournament dates are not available yet. We will assume you are available on all days once the schedule is
-              announced.
-            </Alert>
-          ) : (
-            <>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Select the dates you are unavailable:
-              </Typography>
-              <FormGroup>
-                {eventDates.map((date) => (
-                  <FormControlLabel
-                    key={date.value}
-                    control={
-                      <Checkbox
-                        checked={formData.unavailableDates.includes(date.value)}
-                        onChange={() => handleUnavailableDateToggle(date.value)}
-                      />
-                    }
-                    label={date.label}
-                  />
-                ))}
-              </FormGroup>
-              {formData.unavailableDates.length === 0 && (
-                <Typography variant="caption" color="error">
-                  Please select at least one date you are unavailable.
-                </Typography>
-              )}
-            </>
-          )}
-        </Grid>
-      )}
-
-      <Grid item xs={12}>
-        <Typography variant="subtitle1" gutterBottom>
-          Registration Rules &amp; Terms
-        </Typography>
-        <Box
-          sx={{
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            borderRadius: 1,
-            p: 2,
-            maxHeight: 220,
-            overflowY: 'auto',
-            mb: 2
-          }}
-        >
-          {termsContent.map((text, index) => (
-            <Typography key={index} variant="body2" sx={{ mb: 1.5, whiteSpace: 'pre-line' }}>
-              {text}
-            </Typography>
-          ))}
-        </Box>
-        <FormControlLabel
-          control={
-            <Checkbox
-              name="termsAccepted"
-              checked={formData.termsAccepted}
-              onChange={handleInputChange}
-              required
+            ) : (
+              <Stack
+                spacing={1}
+                justifyContent="center"
+                alignItems="center"
+                sx={{
+                  width: '100%',
+                  maxWidth: 280,
+                  height: 220,
+                  borderRadius: 3,
+                  mx: 'auto',
+                  mb: 3,
+                  border: (theme) => `1px dashed ${theme.palette.divider}`,
+                  backgroundColor: 'grey.50'
+                }}
+              >
+                <CloudUploadIcon color="action" fontSize="large" />
+                <Typography color="text.secondary">No photo uploaded yet</Typography>
+              </Stack>
+            )}
+            <input
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="player-photo-upload"
+              type="file"
+              onChange={handleFileChange}
             />
-          }
-          label={
-            <Typography variant="body2">
-              I confirm that the provided information is accurate and I agree to the tournament Terms & Conditions.
+            <label htmlFor="player-photo-upload">
+              <Button
+                variant="contained"
+                component="span"
+                startIcon={uploading ? <CircularProgress size={18} /> : <CloudUploadIcon />}
+                disabled={uploading}
+              >
+                {playerPhoto ? 'Replace Photo' : 'Upload Photo'}
+              </Button>
+            </label>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.5 }}>
+              JPG/PNG up to {MAX_FILE_SIZE_MB}MB. Existing photo will be reused if you skip this step.
             </Typography>
-          }
-        />
+          </CardContent>
+        </Card>
       </Grid>
-
-      <Grid item xs={12}>
-        <Alert severity="info">
-          <Typography variant="body2">
-            <strong>Total Payable: {formatCurrency(totalAmount)}</strong>
-            <br />
-            Payment will cover all selected categories in a single transaction.
-          </Typography>
-        </Alert>
+      <Grid item xs={12} md={6}>
+        <Card sx={{ height: '100%' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Photo Guidelines
+            </Typography>
+            <List dense>
+              {[
+                'Use a recent photo with a plain background.',
+                'Face should be clearly visible without sunglasses or caps.',
+                'Upload a portrait image (minimum 600px on the shorter side).',
+                'Ensure lighting is even—avoid harsh shadows.',
+                'You can update this photo anytime before payment.'
+              ].map((rule, idx) => (
+                <ListItem key={idx} disableGutters>
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <CheckCircleOutlineIcon fontSize="small" color="success" />
+                  </ListItemIcon>
+                  <ListItemText primary={rule} primaryTypographyProps={{ variant: 'body2' }} />
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Card>
       </Grid>
     </Grid>
   );
 
-  const renderStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return renderDocumentStep();
-      case 1:
-        return renderCategoryStep();
-      case 2:
-        return renderJerseyStep();
-      default:
-        return null;
-    }
-  };
+  const renderPlayerInfo = () => (
+    <Card
+      sx={{
+        mb: 3,
+        background: 'linear-gradient(135deg, rgba(25,118,210,0.08), rgba(118,255,210,0.15))'
+      }}
+    >
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Player Snapshot
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems="center">
+          <Avatar src={resolvedPlayerPhoto} sx={{ width: 86, height: 86, fontSize: 32 }}>
+            {user.fullName ? user.fullName.charAt(0) : '?'}
+          </Avatar>
+          <Box>
+            <Typography variant="h6">{user.fullName}</Typography>
+            <Typography color="text.secondary">Reg ID: {user.registrationNumber}</Typography>
+            <Typography color="text.secondary">Phone: {user.phoneNumber}</Typography>
+            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
+              {playerAge !== null && playerAge !== undefined && (
+                <Chip label={`Age ${playerAge}`} size="small" color="primary" />
+              )}
+              {playerGender && <Chip label={formatGenderLabel(playerGender)} size="small" />}
+            </Stack>
+          </Box>
+        </Stack>
+        {playerGender == null && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            Please update your gender in profile to unlock gender-restricted categories.
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
 
-  if (initialLoading) {
+  const renderCategoryCards = () => (
+    <Grid container spacing={2}>
+      {categories.map((category) => {
+        const { ageEligible, ageLabel, genderRequirement, genderEligible } = buildCategoryEligibility(category);
+        const alreadySelected = selectedEntries.some((entry) => entry.categoryId === category.id);
+        const disabled = alreadySelected || !ageEligible || !genderEligible;
+        const actionLabel = alreadySelected ? 'Selected' : 'Add';
+        const tooltipMessage = !ageEligible
+          ? `Category requires ${ageLabel}.`
+          : !genderEligible
+            ? `Category requires ${formatGenderLabel(genderRequirement)} players.`
+            : alreadySelected
+              ? 'Category already selected.'
+              : '';
+        return (
+          <Grid item xs={12} sm={6} md={4} key={category.id}>
+            <Card
+              variant="outlined"
+              sx={{
+                height: '100%',
+                borderColor: !ageEligible || !genderEligible ? 'error.light' : 'divider',
+                backgroundColor: disabled ? 'action.hover' : 'background.paper'
+              }}
+            >
+              <CardContent>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="h6">{category.name}</Typography>
+                  <Chip size="small" label={category.categoryType} variant="outlined" />
+                </Stack>
+                <Typography variant="body2" color={ageEligible ? 'text.secondary' : 'error.main'} sx={{ mt: 1 }}>
+                  {ageLabel}
+                </Typography>
+                {genderRequirement && (
+                  <Typography
+                    variant="body2"
+                    color={genderEligible ? 'text.secondary' : 'error.main'}
+                  >
+                    Requires {formatGenderLabel(genderRequirement)} players
+                  </Typography>
+                )}
+                <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                  Fee: ₹{category.categoryType === 'SOLO' ? category.pricePerPlayer : category.pricePerPlayer * 2}
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <Tooltip title={tooltipMessage}>
+                  <span>
+                    <Button size="small" onClick={() => openCategoryDialog(category)} disabled={disabled}>
+                      {actionLabel}
+                    </Button>
+                  </span>
+                </Tooltip>
+              </CardActions>
+            </Card>
+          </Grid>
+        );
+      })}
+    </Grid>
+  );
+
+  const renderSelectedEntries = () => (
+    <Stack spacing={1}>
+      {selectedEntries.map((entry) => (
+        <Card variant="outlined" key={entry.categoryId}>
+          <CardContent>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
+              <Box>
+                <Typography variant="subtitle1">{entry.categoryName}</Typography>
+                <Typography color="text.secondary">{entry.categoryType}</Typography>
+                {entry.categoryType === 'FAMILY' && (
+                  <Typography variant="body2" color="text.secondary">
+                    Self: {entry.selfRelation} · Partner: {entry.partnerRelation}
+                  </Typography>
+                )}
+                {entry.partnerInfo && (
+                  <Typography variant="body2" color="text.secondary">
+                    Partner: {entry.partnerInfo.fullName}
+                  </Typography>
+                )}
+              </Box>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="subtitle2">
+                  ₹{entry.categoryType === 'SOLO' ? entry.pricePerPlayer : entry.pricePerPlayer * 2}
+                </Typography>
+                <Button
+                  size="small"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => handleRemoveEntry(entry.categoryId)}
+                >
+                  Remove
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      ))}
+      {selectedEntries.length === 0 && (
+        <Alert severity="info">No categories selected yet.</Alert>
+      )}
+    </Stack>
+  );
+
+  const renderRulesSection = () => (
+    <Card variant="outlined">
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Tournament Rules
+        </Typography>
+        <List dense>
+          {cricketTournamentRules.map((rule, idx) => (
+            <ListItem key={idx} alignItems="flex-start">
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <CheckCircleOutlineIcon fontSize="small" color="primary" />
+              </ListItemIcon>
+              <ListItemText primary={rule} primaryTypographyProps={{ variant: 'body2' }} />
+            </ListItem>
+          ))}
+        </List>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4, mb: 6 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Badminton Event Registration
-        </Typography>
-        <Typography variant="subtitle1" align="center" color="text.secondary" gutterBottom>
-          {event?.name || 'Loading event...'}
-        </Typography>
-        <Typography variant="body2" align="center" color="error" gutterBottom>
-          Complete all steps to register and pay once.
-        </Typography>
+    <Box
+      sx={{
+        background: 'linear-gradient(135deg, #eef2ff 0%, #f5fbff 45%, #eef7ff 100%)',
+        minHeight: '100vh',
+        py: 6
+      }}
+    >
+      <Container maxWidth="lg">
+        <Box
+          sx={{
+            mb: 4,
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, #1a237e, #3949ab)',
+            borderRadius: 4,
+            color: 'common.white',
+            py: 4,
+            px: 2
+          }}
+        >
+          <Typography variant="h4" gutterBottom>
+            Badminton Registration
+          </Typography>
+          <Typography variant="subtitle1">
+            {event?.name || 'Loading event...'}
+          </Typography>
+        </Box>
 
-        <Stepper activeStep={activeStep} sx={{ mt: 4, mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        <Paper elevation={6} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4 }}>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
+          {activeStep === 0 && renderPhotoStep()}
 
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <form onSubmit={handleSubmit}>
-            {renderStepContent(activeStep)}
+          {activeStep === 1 && (
+            <Stack spacing={3}>
+              {renderPlayerInfo()}
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Selected Categories
+                </Typography>
+                {renderSelectedEntries()}
+              </Box>
+              <Divider />
+              <Typography variant="h6">Available Categories</Typography>
+              {renderCategoryCards()}
+            </Stack>
+          )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button disabled={activeStep === 0 || submitting} onClick={handleBack} variant="outlined">
-                Back
+          {activeStep === 2 && (
+            <Stack spacing={3}>
+              <Typography variant="h6">Review & Pay</Typography>
+              {renderSelectedEntries()}
+              {renderRulesSection()}
+              <Typography variant="h5" align="right">
+                Total: ₹{totalAmount}
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                  />
+                }
+                label="I agree to the Terms & Conditions"
+              />
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleSubmit}
+                disabled={selectedEntries.length === 0 || !termsAccepted}
+              >
+                Proceed to Pay
               </Button>
+            </Stack>
+          )}
 
-              {activeStep === steps.length - 1 ? (
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={submitting || !validateStep(activeStep)}
-                  startIcon={submitting ? <CircularProgress size={20} /> : null}
-                >
-                  {submitting ? 'Processing...' : 'Complete & Pay'}
-                </Button>
-              ) : (
-                <Button onClick={handleNext} variant="contained" disabled={!validateStep(activeStep)}>
-                  Next
-                </Button>
-              )}
-            </Box>
-          </form>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+            <Button disabled={activeStep === 0} onClick={handleBack}>
+              Back
+            </Button>
+            {activeStep < steps.length - 1 && (
+              <Button variant="contained" onClick={handleNext}>
+                Next
+              </Button>
+            )}
+          </Box>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+
+      <Dialog open={dialogState.open} onClose={closeCategoryDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Add {dialogState.category?.name}
+        </DialogTitle>
+        <DialogContent dividers>
+          {dialogState.category?.categoryType === 'FAMILY' && (
+            <Stack spacing={2} sx={{ mb: 2 }}>
+              <TextField
+                label="Your relation"
+                select
+                SelectProps={{ native: true }}
+                value={dialogState.selfRelation}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDialogState((prev) => ({
+                    ...prev,
+                    selfRelation: value,
+                    selectedPartner: null,
+                    partnerQuery: '',
+                    searchResults: []
+                  }));
+                }}
+              >
+                <option value="">Select relation</option>
+                {(FAMILY_RELATIONS[dialogState.category?.name] || []).map((option) => (
+                  <option key={option.self} value={option.self}>
+                    {option.self}
+                  </option>
+                ))}
+              </TextField>
+              {dialogState.selfRelation && (
+                <Alert severity="info">
+                  Partner relation will be set to{' '}
+                  {relationPartnerMap(dialogState.category.name, dialogState.selfRelation)}
+                </Alert>
+              )}
+              {relationGenderWarning && (
+                <Alert severity="error">{relationGenderWarning}</Alert>
+              )}
+            </Stack>
+          )}
+
+          {['DOUBLE', 'FAMILY'].includes(dialogState.category?.categoryType) && (
+            <>
+              <TextField
+                label="Search partner by name, registration ID, or phone"
+                fullWidth
+                value={dialogState.partnerQuery}
+                onChange={(e) => handlePartnerSearch(e.target.value)}
+                sx={{ mb: 2 }}
+                disabled={isPartnerSearchTemporarilyDisabled}
+                helperText={
+                  isFamilyDialog && !dialogState.selfRelation
+                    ? 'Select your relation to enable partner search'
+                    : isFamilyDialog && relationGenderWarning
+                      ? 'Resolve the relation gender mismatch to continue'
+                      : ''
+                }
+              />
+              <List dense>
+                {dialogState.searchResults.map((result) => {
+                  const requiredGender = isFamilyDialog
+                    ? selectedFamilyMeta?.partnerGender
+                    : detectGenderRequirement(
+                        dialogState.category?.name,
+                        dialogState.category?.categoryType
+                      );
+                  const genderLabel = formatGenderLabel(result.gender) || 'Gender NA';
+                  const partnerGenderCode = result.gender ? result.gender.toUpperCase() : null;
+                  const genderMismatch =
+                    requiredGender && partnerGenderCode && partnerGenderCode !== requiredGender;
+                  const missingGender = requiredGender && !partnerGenderCode;
+                  const age = calcAge(result.dateOfBirth);
+                  const isSelected = dialogState.selectedPartner?.id === result.id;
+                  const hasDocs = hasUploadedAadhaar(result);
+                  const docMismatch = !hasDocs;
+                  const disableReason =
+                    isPartnerSearchTemporarilyDisabled
+                      ? 'Relation needs to be selected'
+                      : genderMismatch
+                        ? 'Gender does not match this category'
+                        : missingGender
+                          ? 'Partner gender not specified'
+                          : docMismatch
+                            ? 'Aadhaar documents missing'
+                            : null;
+                  const secondaryIssues = [
+                    genderMismatch ? 'Gender does not match this category' : null,
+                    missingGender ? 'Gender unavailable' : null,
+                    docMismatch ? 'Aadhaar documents missing' : null
+                  ]
+                    .filter(Boolean)
+                    .join(' — ');
+                  return (
+                    <ListItemButton
+                      key={result.id}
+                      disabled={Boolean(disableReason)}
+                      selected={isSelected}
+                      onClick={() => setDialogState((prev) => ({ ...prev, selectedPartner: result }))}
+                      sx={(theme) => ({
+                        borderRadius: 2,
+                        mb: 1,
+                        border: `1px solid ${
+                          isSelected ? theme.palette.primary.main : theme.palette.divider
+                        }`
+                      })}
+                    >
+                      <ListItemIcon>
+                        <Avatar>{result.fullName?.charAt(0) || '?'}</Avatar>
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" alignItems="center" justifyContent="space-between">
+                            <Box>
+                              <Typography variant="subtitle2">{result.fullName}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Reg: {result.registrationNumber} · House: {result.houseNumber || 'NA'}
+                              </Typography>
+                            </Box>
+                            {isSelected && (
+                              <Chip
+                                size="small"
+                                color="success"
+                                label="Selected"
+                                icon={<CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                              />
+                            )}
+                          </Stack>
+                        }
+                        secondary={
+                          <Typography
+                            variant="body2"
+                            color={
+                              secondaryIssues
+                                ? 'error.main'
+                                : 'text.secondary'
+                            }
+                          >
+                            {genderLabel} · {age ? `${age} yrs` : 'Age NA'} · Phone: {result.phoneNumber}
+                            {secondaryIssues && ` — ${secondaryIssues}`}
+                          </Typography>
+                        }
+                      />
+                    </ListItemButton>
+                  );
+                })}
+                {!searchLoading && dialogState.searchResults.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    Type at least 2 characters to search existing players.
+                  </Typography>
+                )}
+                {searchLoading && (
+                  <Typography variant="body2" color="text.secondary">
+                    Searching players...
+                  </Typography>
+                )}
+              </List>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCategoryDialog}>Cancel</Button>
+          <Button onClick={handleDialogSave} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+  </Box>
   );
-}
+};
 
 export default BadmintonRegistration;
-

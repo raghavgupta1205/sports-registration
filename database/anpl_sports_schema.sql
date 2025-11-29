@@ -252,6 +252,7 @@ CREATE TABLE anpl_sports.cricket_player_skills (
     CONSTRAINT uk_cricket_skills_profile UNIQUE(player_profile_id)
 );
 
+-- 7. BADMINTON PLAYER SKILLS TABLE
 -- Badminton-specific attributes linked to player profile
 CREATE TABLE anpl_sports.badminton_player_skills (
     id BIGSERIAL PRIMARY KEY,
@@ -289,57 +290,7 @@ CREATE TABLE anpl_sports.badminton_player_skills (
     CONSTRAINT uk_badminton_skills_profile UNIQUE(player_profile_id)
 );
 
--- 8. BADMINTON CATEGORIES TABLE
--- Master list of badminton categories tied to a specific event configuration
-CREATE TABLE anpl_sports.badminton_categories (
-    id BIGSERIAL PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    code VARCHAR(50) NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
-    category_type VARCHAR(20) NOT NULL,
-    min_age INTEGER,
-    max_age INTEGER,
-    gender_group VARCHAR(20),
-    participants_per_entry INTEGER NOT NULL DEFAULT 1,
-    requires_partner_details BOOLEAN NOT NULL DEFAULT false,
-    requires_relation_details BOOLEAN NOT NULL DEFAULT false,
-    display_order INTEGER,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_badminton_category_event FOREIGN KEY (event_id)
-        REFERENCES anpl_sports.events(id) ON DELETE CASCADE,
-    CONSTRAINT uk_badminton_category_event_code UNIQUE(event_id, code)
-);
-
--- 9. BADMINTON REGISTRATION ENTRIES TABLE
--- Stores each category entry selected within a badminton registration flow
-CREATE TABLE anpl_sports.badminton_registration_entries (
-    id BIGSERIAL PRIMARY KEY,
-    event_registration_id BIGINT NOT NULL,
-    category_id BIGINT NOT NULL,
-    entry_type VARCHAR(20) NOT NULL,
-    primary_player_name VARCHAR(255) NOT NULL,
-    primary_player_age INTEGER,
-    primary_player_relation VARCHAR(50) DEFAULT 'SELF',
-    partner_player_name VARCHAR(255),
-    partner_player_age INTEGER,
-    partner_player_relation VARCHAR(50),
-    participants_count INTEGER NOT NULL DEFAULT 1,
-    entry_fee DECIMAL(10,2) NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_badminton_entry_registration FOREIGN KEY (event_registration_id)
-        REFERENCES anpl_sports.event_registrations(id) ON DELETE CASCADE,
-    CONSTRAINT fk_badminton_entry_category FOREIGN KEY (category_id)
-        REFERENCES anpl_sports.badminton_categories(id) ON DELETE CASCADE,
-    CONSTRAINT uk_badminton_entry_registration_category UNIQUE(event_registration_id, category_id)
-);
-
--- 10. PAYMENTS TABLE
+-- 8. PAYMENTS TABLE
 CREATE TABLE anpl_sports.payments (
     id BIGSERIAL PRIMARY KEY,
     registration_id BIGINT NOT NULL,
@@ -386,6 +337,60 @@ CREATE TABLE anpl_sports.password_reset_tokens (
     
     -- Unique Constraints
     CONSTRAINT uk_password_reset_token UNIQUE(token)
+);
+
+-- 10. BADMINTON CATEGORIES
+CREATE TABLE anpl_sports.badminton_categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category_type VARCHAR(20) NOT NULL,
+    price_per_player INTEGER NOT NULL DEFAULT 800,
+    age_limit VARCHAR(50),
+    description VARCHAR(500),
+    display_order INTEGER DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- 11. BADMINTON REGISTRATION BUNDLES
+CREATE TABLE anpl_sports.badminton_registration_bundles (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    event_id BIGINT NOT NULL,
+    terms_accepted BOOLEAN NOT NULL DEFAULT false,
+    total_amount INTEGER NOT NULL DEFAULT 0,
+    bundle_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    payment_order_id VARCHAR(100),
+    payment_reference VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_badminton_bundle_user FOREIGN KEY (user_id)
+        REFERENCES anpl_sports.users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_badminton_bundle_event FOREIGN KEY (event_id)
+        REFERENCES anpl_sports.events(id) ON DELETE CASCADE
+);
+
+-- 12. BADMINTON REGISTRATION ENTRIES
+CREATE TABLE anpl_sports.badminton_registration_entries (
+    id BIGSERIAL PRIMARY KEY,
+    bundle_id BIGINT NOT NULL,
+    category_id BIGINT NOT NULL,
+    category_type VARCHAR(20) NOT NULL,
+    price_per_player INTEGER NOT NULL,
+    entry_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    partner_user_id BIGINT,
+    partner_full_name VARCHAR(255),
+    partner_age INTEGER,
+    partner_contact VARCHAR(50),
+    secondary_partner_user_id BIGINT,
+    secondary_partner_full_name VARCHAR(255),
+    secondary_partner_age INTEGER,
+    secondary_partner_contact VARCHAR(50),
+    self_relation VARCHAR(50),
+    partner_relation VARCHAR(50),
+    CONSTRAINT fk_badminton_entry_bundle FOREIGN KEY (bundle_id)
+        REFERENCES anpl_sports.badminton_registration_bundles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_badminton_entry_category FOREIGN KEY (category_id)
+        REFERENCES anpl_sports.badminton_categories(id)
 );
 
 -- ================================================================

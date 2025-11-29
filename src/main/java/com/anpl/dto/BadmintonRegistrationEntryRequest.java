@@ -1,20 +1,22 @@
 package com.anpl.dto;
 
 import com.anpl.model.BadmintonCategoryType;
-import lombok.Builder;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-@Builder
-public class BadmintonRegistrationEntryResponse {
-    private Long entryId;
+public class BadmintonRegistrationEntryRequest {
+    @NotNull
     private Long categoryId;
-    private String categoryName;
+
     private BadmintonCategoryType categoryType;
-    private Integer pricePerPlayer;
+
     private BadmintonPartnerInfo partnerInfo;
+
     private BadmintonPartnerInfo secondaryPartnerInfo;
+
     private String selfRelation;
+
     private String partnerRelation;
 }
 

@@ -57,16 +57,7 @@ public class UserService {
 
         String token = jwtTokenProvider.generateToken(savedUser.getEmail());
 
-        return UserResponse.builder()
-                .id(savedUser.getId())
-                .fullName(savedUser.getFullName())
-                .email(savedUser.getEmail())
-                .phoneNumber(savedUser.getPhoneNumber())
-                .registrationNumber(savedUser.getRegistrationNumber())
-                .block(savedUser.getBlock())
-                .token(token)
-                .role(savedUser.getRole().toString())
-                .build();
+        return buildUserResponse(savedUser, token);
     }
 
     public UserResponse login(LoginRequest request) {
@@ -124,8 +115,14 @@ public class UserService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
+                .whatsappNumber(user.getWhatsappNumber())
                 .registrationNumber(user.getRegistrationNumber())
                 .block(user.getBlock())
+                .houseNumber(user.getHouseNumber())
+                .dateOfBirth(user.getDateOfBirth())
+                .gender(user.getGender() != null ? user.getGender().name() : null)
+                .playerPhoto(user.getPlayerPhoto())
+                .hasAadhaarDocuments(user.getAadhaarFrontPhoto() != null && user.getAadhaarBackPhoto() != null)
                 .token(token)
                 .role(user.getRole().toString())
                 .build();

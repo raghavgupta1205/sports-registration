@@ -132,16 +132,28 @@
             </div>
 
             <div class="content">
-                <p>Hey <strong th:text="${user.fullName}">Player</strong>,</p>
-                <p>We’re thrilled to have you in the ANPL community. Your profile is now active and you can explore upcoming sports registrations, upload player documents, and stay updated on league announcements.</p>
+                <p>Dear <strong th:text="${user.fullName}">Player</strong>,</p>
+                <p>
+                    Thank you for signing up for the Aggar Nagar Premier League (ANPL) tournaments,
+                    organised by the Residents Welfare Club Aggar Nagar. We have successfully received your information.
+                </p>
+                <p>
+                    Please find your Unique Identification Number (UID) below. Make sure to save this number for future
+                    participation in the ANPL tournaments:
+                </p>
 
                 <div class="details-card">
-                    <p><strong>Registration ID:</strong> <span th:text="${user.registrationNumber}">ANPL-0000</span></p>
+                    <p><strong>Unique Identification Number:</strong> <span th:text="${user.registrationNumber}">ANPL-0000</span></p>
                     <p><strong>Email:</strong> <span th:text="${user.email}">player@anpl.in</span></p>
                     <p><strong>Phone:</strong> <span th:text="${user.phoneNumber}">9999999999</span></p>
                 </div>
 
-                <p>Log in anytime to manage your registrations, keep your documents up to date, and never miss an ANPL event.</p>
+                <p>To participate in the tournament, please complete the tournament registration form and make your payment online.</p>
+
+                <p>
+                    Thank you!<br />
+                    <strong>Residents Welfare Club Aggar Nagar</strong>
+                </p>
             </div>
 
             <div class="footer">

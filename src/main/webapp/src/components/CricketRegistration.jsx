@@ -549,7 +549,7 @@ function CricketRegistration() {
     <Grid container spacing={3}>
       <Grid item xs={12}>
         <Alert severity="info">
-          Upload clear photos of your documents (JPG, PNG, or PDF, max 5MB each)
+                  Upload clear photos of your documents (JPG, PNG, or PDF, max 1MB each)
         </Alert>
       </Grid>
 

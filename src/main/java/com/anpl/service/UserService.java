@@ -3,17 +3,19 @@ package com.anpl.service;
 import com.anpl.dto.LoginRequest;
 import com.anpl.dto.RegistrationRequest;
 import com.anpl.dto.UserResponse;
-import com.anpl.model.User;
-import com.anpl.model.UserRole;
 import com.anpl.exception.DuplicateResourceException;
 import com.anpl.exception.InvalidCredentialsException;
+import com.anpl.model.User;
+import com.anpl.model.UserRole;
 import com.anpl.repository.UserRepository;
 import com.anpl.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -24,6 +26,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
+    private final FileUploadService fileUploadService;
 
     @Transactional
     public UserResponse registerUser(RegistrationRequest request) {
@@ -36,28 +39,51 @@ public class UserService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already registered");
         }
+        if (userRepository.existsByAadhaarNumber(request.getAadhaarNumber())) {
+            throw new DuplicateResourceException("Aadhaar card already registered");
+        }
 
         // Create new user
         User user = new User();
-        user.setFullName(request.getFullName());
-        user.setFathersName(request.getFathersName());
-        user.setDateOfBirth(request.getDateOfBirth());
-        user.setEmail(request.getEmail());
-        user.setPhoneNumber(request.getPhoneNumber());
-        user.setAadhaarNumber(request.getAadhaarNumber());
-        user.setBlock(request.getBlock());
-        user.setHouseNumber(request.getHouseNumber());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(UserRole.USER);
-        user.setRegistrationNumber(generateRegistrationNumber());
-        user.setCreatedAt(LocalDateTime.now());
+        try {
+            String aadhaarFrontPath = fileUploadService.uploadBase64Image(
+                    request.getAadhaarFrontPhotoData(),
+                    "registration-aadhaar-front");
+            String aadhaarBackPath = fileUploadService.uploadBase64Image(
+                    request.getAadhaarBackPhotoData(),
+                    "registration-aadhaar-back");
+            String profilePhotoPath = StringUtils.hasText(request.getProfilePhotoData())
+                    ? fileUploadService.uploadBase64Image(request.getProfilePhotoData(), "registration-profile-photo")
+                    : null;
 
-        User savedUser = userRepository.save(user);
-        emailService.sendWelcomeEmail(savedUser);
+            user.setFullName(request.getFullName());
+            user.setFathersName(request.getFathersName());
+            user.setDateOfBirth(request.getDateOfBirth());
+            user.setEmail(request.getEmail());
+            user.setPhoneNumber(request.getPhoneNumber());
+            user.setAadhaarNumber(request.getAadhaarNumber());
+            user.setAadhaarFrontPhoto(aadhaarFrontPath);
+            user.setAadhaarBackPhoto(aadhaarBackPath);
+            user.setGender(request.getGender());
+            if (StringUtils.hasText(profilePhotoPath)) {
+                user.setPlayerPhoto(profilePhotoPath);
+            }
+            user.setBlock(request.getBlock());
+            user.setHouseNumber(request.getHouseNumber());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole(UserRole.USER);
+            user.setRegistrationNumber(generateRegistrationNumber());
+            user.setCreatedAt(LocalDateTime.now());
 
-        String token = jwtTokenProvider.generateToken(savedUser.getEmail());
+            User savedUser = userRepository.save(user);
+            emailService.sendWelcomeEmail(savedUser);
 
-        return buildUserResponse(savedUser, token);
+            String token = jwtTokenProvider.generateToken(savedUser.getEmail());
+
+            return buildUserResponse(savedUser, token);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to store identity documents", ex);
+        }
     }
 
     public UserResponse login(LoginRequest request) {

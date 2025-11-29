@@ -417,7 +417,9 @@ const BadmintonRegistration = () => {
           userId: selectedPartner.id,
           fullName: selectedPartner.fullName,
           age: calcAge(selectedPartner.dateOfBirth),
-          contactNumber: selectedPartner.phoneNumber
+          contactNumber: selectedPartner.phoneNumber,
+          playerPhoto: selectedPartner.playerPhoto || null,
+          houseNumber: selectedPartner.houseNumber || null
         }
       };
     }
@@ -432,7 +434,9 @@ const BadmintonRegistration = () => {
           userId: selectedPartner.id,
           fullName: selectedPartner.fullName,
           age: calcAge(selectedPartner.dateOfBirth),
-          contactNumber: selectedPartner.phoneNumber
+          contactNumber: selectedPartner.phoneNumber,
+          playerPhoto: selectedPartner.playerPhoto || null,
+          houseNumber: selectedPartner.houseNumber || null
         }
       };
     }
@@ -664,7 +668,7 @@ const BadmintonRegistration = () => {
     >
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Player Snapshot
+          Your Profile
         </Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems="center">
           <Avatar src={resolvedPlayerPhoto} sx={{ width: 86, height: 86, fontSize: 32 }}>
@@ -751,48 +755,63 @@ const BadmintonRegistration = () => {
     </Grid>
   );
 
-  const renderSelectedEntries = () => (
-    <Stack spacing={1}>
-      {selectedEntries.map((entry) => (
-        <Card variant="outlined" key={entry.categoryId}>
-          <CardContent>
-            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
-              <Box>
-                <Typography variant="subtitle1">{entry.categoryName}</Typography>
-                <Typography color="text.secondary">{entry.categoryType}</Typography>
-                {entry.categoryType === 'FAMILY' && (
-                  <Typography variant="body2" color="text.secondary">
-                    Self: {entry.selfRelation} · Partner: {entry.partnerRelation}
-                  </Typography>
-                )}
-                {entry.partnerInfo && (
-                  <Typography variant="body2" color="text.secondary">
-                    Partner: {entry.partnerInfo.fullName}
-                  </Typography>
-                )}
-              </Box>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="subtitle2">
-                  ₹{entry.categoryType === 'SOLO' ? entry.pricePerPlayer : entry.pricePerPlayer * 2}
+const renderSelectedEntries = () => (
+  <Stack spacing={1}>
+    {selectedEntries.map((entry) => (
+      <Card variant="outlined" key={entry.categoryId}>
+        <CardContent>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between">
+            <Box>
+              <Typography variant="subtitle1">{entry.categoryName}</Typography>
+              <Typography color="text.secondary">{entry.categoryType}</Typography>
+              {entry.categoryType === 'FAMILY' && (
+                <Typography variant="body2" color="text.secondary">
+                  Self: {entry.selfRelation} · Partner: {entry.partnerRelation}
                 </Typography>
-                <Button
-                  size="small"
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={() => handleRemoveEntry(entry.categoryId)}
-                >
-                  Remove
-                </Button>
-              </Stack>
+              )}
+              {entry.partnerInfo && (
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1 }}>
+                  {entry.partnerInfo.playerPhoto && (
+                    <Avatar
+                      src={getFileUrl(entry.partnerInfo.playerPhoto)}
+                      sx={{ width: 56, height: 56 }}
+                    >
+                      {entry.partnerInfo.fullName?.charAt(0) || '?'}
+                    </Avatar>
+                  )}
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Partner: {entry.partnerInfo.fullName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      House: {entry.partnerInfo.houseNumber || 'NA'}
+                    </Typography>
+                  </Box>
+                </Stack>
+              )}
+            </Box>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="subtitle2">
+                ₹{entry.categoryType === 'SOLO' ? entry.pricePerPlayer : entry.pricePerPlayer * 2}
+              </Typography>
+              <Button
+                size="small"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => handleRemoveEntry(entry.categoryId)}
+              >
+                Remove
+              </Button>
             </Stack>
-          </CardContent>
-        </Card>
-      ))}
-      {selectedEntries.length === 0 && (
-        <Alert severity="info">No categories selected yet.</Alert>
-      )}
-    </Stack>
-  );
+          </Stack>
+        </CardContent>
+      </Card>
+    ))}
+    {selectedEntries.length === 0 && (
+      <Alert severity="info">No categories selected yet.</Alert>
+    )}
+  </Stack>
+);
 
   const renderRulesSection = () => (
     <Card variant="outlined">
@@ -995,8 +1014,12 @@ const BadmintonRegistration = () => {
                   const genderMismatch =
                     requiredGender && partnerGenderCode && partnerGenderCode !== requiredGender;
                   const missingGender = requiredGender && !partnerGenderCode;
-                  const age = calcAge(result.dateOfBirth);
                   const isSelected = dialogState.selectedPartner?.id === result.id;
+                  const partnerPreview = isSelected
+                    ? result.playerPhoto
+                      ? getFileUrl(result.playerPhoto)
+                      : null
+                    : null;
                   const hasDocs = hasUploadedAadhaar(result);
                   const docMismatch = !hasDocs;
                   const disableReason =
@@ -1030,24 +1053,37 @@ const BadmintonRegistration = () => {
                         }`
                       })}
                     >
-                      <ListItemIcon>
-                        <Avatar>{result.fullName?.charAt(0) || '?'}</Avatar>
-                      </ListItemIcon>
                       <ListItemText
                         primary={
-                          <Stack direction="row" alignItems="center" justifyContent="space-between">
-                            <Box>
-                              <Typography variant="subtitle2">{result.fullName}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                Reg: {result.registrationNumber} · House: {result.houseNumber || 'NA'}
-                              </Typography>
-                            </Box>
-                            {isSelected && (
-                              <Chip
-                                size="small"
-                                color="success"
-                                label="Selected"
-                                icon={<CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                          <Stack direction="column" spacing={1}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between">
+                              <Box>
+                                <Typography variant="subtitle2">{result.fullName}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Reg: {result.registrationNumber} · House: {result.houseNumber || 'NA'} · Gender: {genderLabel}
+                                </Typography>
+                              </Box>
+                              {isSelected && (
+                                <Chip
+                                  size="small"
+                                  color="success"
+                                  label="Selected"
+                                  icon={<CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
+                                />
+                              )}
+                            </Stack>
+                            {isSelected && partnerPreview && (
+                              <Box
+                                component="img"
+                                src={partnerPreview}
+                                alt={`${result.fullName} preview`}
+                                sx={{
+                                  width: 72,
+                                  height: 72,
+                                  borderRadius: 2,
+                                  border: (theme) => `1px solid ${theme.palette.divider}`,
+                                  objectFit: 'cover'
+                                }}
                               />
                             )}
                           </Stack>
@@ -1061,7 +1097,6 @@ const BadmintonRegistration = () => {
                                 : 'text.secondary'
                             }
                           >
-                            {genderLabel} · {age ? `${age} yrs` : 'Age NA'} · Phone: {result.phoneNumber}
                             {secondaryIssues && ` — ${secondaryIssues}`}
                           </Typography>
                         }
@@ -1071,7 +1106,7 @@ const BadmintonRegistration = () => {
                 })}
                 {!searchLoading && dialogState.searchResults.length === 0 && (
                   <Typography variant="body2" color="text.secondary">
-                    Type at least 2 characters to search existing players.
+                    Type at least 3 characters to search existing players.
                   </Typography>
                 )}
                 {searchLoading && (

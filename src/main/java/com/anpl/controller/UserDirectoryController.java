@@ -23,7 +23,7 @@ public class UserDirectoryController {
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<UserResponse>>> searchUsers(@RequestParam("query") String query) {
-        if (query == null || query.trim().length() < 2) {
+        if (query == null || query.trim().length() < 3) {
             return ResponseEntity.ok(ApiResponse.success(List.of()));
         }
         List<User> users = userRepository

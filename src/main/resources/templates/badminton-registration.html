@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Badminton Registration Received</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6fb;
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #0f1b2c;
+        }
+        .email-wrapper {
+            width: 100%;
+            padding: 32px 0;
+        }
+        .card {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(25, 118, 210, 0.15);
+        }
+        .brand-bar {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid rgba(15, 27, 44, 0.08);
+        }
+        .brand-bar img {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(25, 118, 210, 0.2);
+        }
+        .brand-bar h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #0f1b2c;
+        }
+        .hero {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(15, 27, 44, 0.8), rgba(25, 118, 210, 0.7));
+        }
+        .hero-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 32px;
+            color: #ffffff;
+            z-index: 1;
+        }
+        .hero-text h2 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+        .content {
+            padding: 32px;
+        }
+        .content p {
+            line-height: 1.6;
+            margin: 0 0 16px;
+        }
+        .entries-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        .entries-table th,
+        .entries-table td {
+            border: 1px solid rgba(25, 118, 210, 0.2);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+        }
+        .entries-table th {
+            background-color: rgba(25, 118, 210, 0.05);
+            color: #0f4c81;
+        }
+        .footer {
+            padding: 24px 32px 32px;
+            border-top: 1px solid rgba(15, 27, 44, 0.08);
+            text-align: center;
+            font-size: 13px;
+            color: #63748c;
+        }
+        @media (max-width: 480px) {
+            .brand-bar, .content, .footer {
+                padding: 24px;
+            }
+            .hero-text {
+                padding: 24px;
+            }
+            .entries-table th, .entries-table td {
+                font-size: 12px;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="email-wrapper">
+    <div class="card">
+        <div class="brand-bar">
+            <img th:src="${logoImage}" alt="[[${brandName}]] logo" />
+            <h1 th:text="${brandName}">ANPL Sports</h1>
+        </div>
+
+        <div class="hero" th:style="'background-image:url(' + ${heroImage} + ');'">
+            <div class="hero-text">
+                <h2>Badminton Registration Confirmed</h2>
+                <p th:text="'Event: ' + ${event?.name}">Event Name</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <p>Dear <strong th:text="${user.fullName}">Player</strong>,</p>
+            <p>
+                Thank you for registering for the Aggar Nagar Premier League (ANPL) Badminton tournament.
+                We have received your entries under the following categories. Please keep these registration IDs safe—
+                you’ll need them during tournament check-ins and future communication.
+            </p>
+
+            <table class="entries-table">
+                <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Registration ID</th>
+                    <th>Partner</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="entry : ${entries}">
+                    <td th:text="${entry.category.name}">Category Name</td>
+                    <td th:text="${entry.categoryType}">DOUBLE</td>
+                    <td th:text="${entry.registrationCode}">B-101-ABCD12</td>
+                    <td th:text="${entry.partnerFullName != null ? entry.partnerFullName : 'N/A'}">Partner Name</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <p>
+                A confirmation email has also been sent to any partners you registered.
+                If there are discrepancies or corrections needed, please reach out to the ANPL organizers promptly.
+            </p>
+            <p>We look forward to seeing you on the court—good luck!</p>
+        </div>
+
+        <div class="footer">
+            <p>
+                © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2024</span>
+                <span th:text="${brandName}">Aggar Nagar Premier League</span>. All rights reserved.
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

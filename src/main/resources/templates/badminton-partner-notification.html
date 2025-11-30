@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Badminton Partner Notification</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6fb;
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: #0f1b2c;
+        }
+        .email-wrapper {
+            width: 100%;
+            padding: 32px 0;
+        }
+        .card {
+            max-width: 640px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(25, 118, 210, 0.15);
+        }
+        .brand-bar {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid rgba(15, 27, 44, 0.08);
+        }
+        .brand-bar img {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(25, 118, 210, 0.2);
+        }
+        .brand-bar h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #0f1b2c;
+        }
+        .content {
+            padding: 32px;
+        }
+        .content p {
+            line-height: 1.6;
+            margin: 0 0 16px;
+        }
+        .entries-list {
+            margin: 16px 0;
+            padding: 0;
+            list-style: none;
+        }
+        .entries-list li {
+            padding: 12px 16px;
+            border: 1px solid rgba(25, 118, 210, 0.2);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .entries-list strong {
+            color: #0f4c81;
+        }
+        .footer {
+            padding: 24px 32px 32px;
+            border-top: 1px solid rgba(15, 27, 44, 0.08);
+            text-align: center;
+            font-size: 13px;
+            color: #63748c;
+        }
+    </style>
+</head>
+<body>
+<div class="email-wrapper">
+    <div class="card">
+        <div class="brand-bar">
+            <img th:src="${logoImage}" alt="[[${brandName}]] logo" />
+            <h1 th:text="${brandName}">ANPL Sports</h1>
+        </div>
+        <div class="content">
+            <p>Dear <strong th:text="${partner.fullName}">Partner</strong>,</p>
+            <p>
+                <strong th:text="${registrant.fullName}">Registrant</strong> has registered you as a partner
+                for the ANPL Badminton tournament.
+            </p>
+            <p>Please note your registration details below:</p>
+
+            <ul class="entries-list">
+                <li th:each="entry : ${entries}">
+                    <p>
+                        <strong>Category:</strong>
+                        <span th:text="${entry.category.name}">Category Name</span>
+                        (<span th:text="${entry.categoryType}">Type</span>)
+                    </p>
+                    <p>
+                        <strong>Registration ID:</strong>
+                        <span th:text="${entry.registrationCode}">B-101-ABCD12</span>
+                    </p>
+                </li>
+            </ul>
+
+            <p>
+                Please keep your registration IDs safe—they are required during tournament reporting.
+                If you have questions, contact the ANPL organizing committee.
+            </p>
+            <p>Wishing you a great tournament!</p>
+            <p>
+                Regards,<br />
+                <strong>Residents Welfare Club Aggar Nagar</strong>
+            </p>
+        </div>
+        <div class="footer">
+            <p>
+                © <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2024</span>
+                <span th:text="${brandName}">Aggar Nagar Premier League</span>. All rights reserved.
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

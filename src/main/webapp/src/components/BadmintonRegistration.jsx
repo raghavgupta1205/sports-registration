@@ -178,6 +178,18 @@ const calcAge = (dateString) => {
   return Math.abs(new Date(diff).getUTCFullYear() - 1970);
 };
 
+const mapServerEntryToSelection = (entry) => ({
+  entryId: entry.entryId || null,
+  categoryId: entry.categoryId,
+  categoryName: entry.categoryName,
+  categoryType: entry.categoryType,
+  pricePerPlayer: entry.pricePerPlayer,
+  registrationCode: entry.registrationCode || null,
+  partnerInfo: entry.partnerInfo || null,
+  selfRelation: entry.selfRelation || null,
+  partnerRelation: entry.partnerRelation || null
+});
+
 const BadmintonRegistration = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
@@ -404,6 +416,8 @@ const BadmintonRegistration = () => {
     }
 
     let entryPayload = {
+      entryId: null,
+      registrationCode: null,
       categoryId: category.id,
       categoryName: category.name,
       categoryType: category.categoryType,
@@ -522,7 +536,11 @@ const BadmintonRegistration = () => {
       };
 
       const response = await badmintonApi.submitBundle(payload);
-      const { bundleRegistrationId, totalAmount: amount } = response.data.data;
+      const registrationData = response.data.data;
+      if (registrationData?.entries?.length) {
+        setSelectedEntries(registrationData.entries.map(mapServerEntryToSelection));
+      }
+      const { bundleRegistrationId, totalAmount: amount } = registrationData;
       const orderResponse = await badmintonApi.createOrder(bundleRegistrationId);
       const { orderId } = orderResponse.data.data;
 
@@ -764,6 +782,14 @@ const renderSelectedEntries = () => (
             <Box>
               <Typography variant="subtitle1">{entry.categoryName}</Typography>
               <Typography color="text.secondary">{entry.categoryType}</Typography>
+              {entry.registrationCode && (
+                <Chip
+                  label={`Reg ID: ${entry.registrationCode}`}
+                  size="small"
+                  color="primary"
+                  sx={{ mt: 1 }}
+                />
+              )}
               {entry.categoryType === 'FAMILY' && (
                 <Typography variant="body2" color="text.secondary">
                   Self: {entry.selfRelation} · Partner: {entry.partnerRelation}

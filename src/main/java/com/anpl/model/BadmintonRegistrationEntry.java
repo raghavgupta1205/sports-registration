@@ -2,6 +2,9 @@ package com.anpl.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.util.StringUtils;
+
+import java.util.UUID;
 
 @Data
 @Entity
@@ -26,6 +29,9 @@ public class BadmintonRegistrationEntry {
 
     @Column(name = "price_per_player", nullable = false)
     private Integer pricePerPlayer;
+
+    @Column(name = "registration_code", nullable = false, unique = true, length = 50)
+    private String registrationCode;
 
     @Column(name = "partner_user_id")
     private Long partnerUserId;
@@ -60,5 +66,12 @@ public class BadmintonRegistrationEntry {
     @Enumerated(EnumType.STRING)
     @Column(name = "entry_status", nullable = false, length = 20)
     private RegistrationStatus entryStatus = RegistrationStatus.PENDING;
+
+    @PrePersist
+    private void ensureRegistrationCode() {
+        if (!StringUtils.hasText(registrationCode)) {
+            registrationCode = "B" + UUID.randomUUID().toString().replace("-", "").substring(0, 9).toUpperCase();
+        }
+    }
 }
 

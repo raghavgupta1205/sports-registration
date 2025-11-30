@@ -5,6 +5,7 @@ import com.anpl.model.Event;
 import com.anpl.model.EventRegistration;
 import com.anpl.model.PlayerProfile;
 import com.anpl.model.CricketPlayerSkills;
+import com.anpl.model.BadmintonRegistrationEntry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,6 +17,7 @@ import org.thymeleaf.context.Context;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +42,9 @@ public class EmailServiceImpl implements EmailService {
 
     @Value("${app.email.assets.banner.cricket:https://images.unsplash.com/photo-1505842465776-3acb31c3c3c9?auto=format&fit=crop&w=1200&q=80}")
     private String cricketBannerUrl;
+
+    @Value("${app.email.assets.banner.badminton:https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80}")
+    private String badmintonBannerUrl;
 
     @Override
     public void sendWelcomeEmail(User user) {
@@ -99,6 +104,46 @@ public class EmailServiceImpl implements EmailService {
         context.setVariable("user", user);
         String content = templateEngine.process("payment-success", context);
         sendEmail(user.getEmail(), "ANPL Payment Successful", content);
+    }
+
+    @Override
+    public void sendBadmintonRegistrationEmail(User registrant,
+                                               Event event,
+                                               List<BadmintonRegistrationEntry> entries) {
+        if (!hasEmail(registrant) || entries == null || entries.isEmpty()) {
+            return;
+        }
+        Context context = baseContext();
+        context.setVariable("user", registrant);
+        context.setVariable("event", event);
+        context.setVariable("entries", entries);
+        context.setVariable("logoImage", badmintonLogoUrl);
+        context.setVariable("heroImage", badmintonBannerUrl);
+        String content = templateEngine.process("badminton-registration", context);
+        sendEmail(registrant.getEmail(), "Badminton Registration Received", content);
+    }
+
+    @Override
+    public void sendBadmintonPartnerEmail(User partner,
+                                          User registrant,
+                                          Event event,
+                                          List<BadmintonRegistrationEntry> entries) {
+        if (partner == null || !hasEmail(partner) || entries == null || entries.isEmpty()) {
+            return;
+        }
+        Context context = baseContext();
+        context.setVariable("partner", partner);
+        context.setVariable("registrant", registrant);
+        context.setVariable("event", event);
+        context.setVariable("entries", entries);
+        context.setVariable("logoImage", badmintonLogoUrl);
+        context.setVariable("heroImage", badmintonBannerUrl);
+        String content = templateEngine.process("badminton-partner-notification", context);
+        sendEmail(partner.getEmail(), "You have been registered for ANPL Badminton", content);
+    }
+
+    private boolean hasEmail(User user) {
+        return user != null && user.getEmail() != null && !user.getEmail().isBlank();
     }
 
     private Context baseContext() {

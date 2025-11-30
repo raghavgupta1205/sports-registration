@@ -9,5 +9,7 @@ public class BadmintonPartnerInfo {
     private Integer age;
     private String contactNumber;
     private String relationLabel;
+    private String playerPhoto;
+    private String houseNumber;
 }
 

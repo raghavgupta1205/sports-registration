@@ -12,6 +12,7 @@ public class BadmintonRegistrationEntryResponse {
     private String categoryName;
     private BadmintonCategoryType categoryType;
     private Integer pricePerPlayer;
+    private String registrationCode;
     private BadmintonPartnerInfo partnerInfo;
     private BadmintonPartnerInfo secondaryPartnerInfo;
     private String selfRelation;

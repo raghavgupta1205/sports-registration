@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface BadmintonRegistrationEntryRepository extends JpaRepository<BadmintonRegistrationEntry, Long> {
     List<BadmintonRegistrationEntry> findByBundleId(Long bundleId);
+    boolean existsByRegistrationCode(String registrationCode);
 }
 

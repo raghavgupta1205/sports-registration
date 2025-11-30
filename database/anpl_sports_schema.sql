@@ -376,6 +376,7 @@ CREATE TABLE anpl_sports.badminton_registration_entries (
     category_id BIGINT NOT NULL,
     category_type VARCHAR(20) NOT NULL,
     price_per_player INTEGER NOT NULL,
+    registration_code VARCHAR(50) NOT NULL UNIQUE,
     entry_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     partner_user_id BIGINT,
     partner_full_name VARCHAR(255),

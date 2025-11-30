@@ -35,10 +35,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,6 +54,8 @@ public class BadmintonRegistrationService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final RazorpayClient razorpayClient;
+    private final EmailService emailService;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     private static final int PRICE_PER_PLAYER = 800;
 
@@ -154,6 +158,7 @@ public class BadmintonRegistrationService {
             entry.setCategory(category);
             entry.setCategoryType(category.getCategoryType());
             entry.setPricePerPlayer(category.getPricePerPlayer());
+            entry.setRegistrationCode(generateUniqueRegistrationCode(event));
 
             switch (category.getCategoryType()) {
                 case SOLO -> handleSoloEntry(entry);
@@ -254,6 +259,50 @@ public class BadmintonRegistrationService {
         };
     }
 
+    private String generateUniqueRegistrationCode(Event event) {
+        String prefix = "B";
+        String code;
+        do {
+            code = prefix + randomAlphaNumeric(9);
+        } while (entryRepository.existsByRegistrationCode(code));
+        return code;
+    }
+
+    private String randomAlphaNumeric(int length) {
+        final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder builder = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            builder.append(chars.charAt(secureRandom.nextInt(chars.length())));
+        }
+        return builder.toString();
+    }
+
+    private void sendBadmintonRegistrationEmails(BadmintonRegistrationBundle bundle,
+                                                 List<BadmintonRegistrationEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return;
+        }
+
+        emailService.sendBadmintonRegistrationEmail(bundle.getUser(), bundle.getEvent(), entries);
+
+        Map<Long, List<BadmintonRegistrationEntry>> partnerEntries = entries.stream()
+                .filter(entry -> entry.getPartnerUserId() != null)
+                .collect(Collectors.groupingBy(BadmintonRegistrationEntry::getPartnerUserId));
+
+        partnerEntries.forEach((partnerId, partnerEntryList) -> {
+            userRepository.findById(partnerId).ifPresent(partner -> {
+                if (!StringUtils.hasText(partner.getEmail())) {
+                    return;
+                }
+                String registrantEmail = bundle.getUser().getEmail();
+                if (registrantEmail != null && registrantEmail.equalsIgnoreCase(partner.getEmail())) {
+                    return;
+                }
+                emailService.sendBadmintonPartnerEmail(partner, bundle.getUser(), bundle.getEvent(), partnerEntryList);
+            });
+        });
+    }
+
     @Transactional(readOnly = true)
     public BadmintonEventRegistrationResponse getBundle(Long bundleId) {
         BadmintonRegistrationBundle bundle = bundleRepository.findById(bundleId)
@@ -325,10 +374,13 @@ public class BadmintonRegistrationService {
         bundle.setPaymentReference(request.getPaymentId());
         bundleRepository.save(bundle);
 
-        bundle.getEntries().forEach(entry -> {
+        List<BadmintonRegistrationEntry> entries = entryRepository.findByBundleId(bundle.getId());
+        entries.forEach(entry -> {
             entry.setEntryStatus(RegistrationStatus.APPROVED);
             entryRepository.save(entry);
         });
+
+        sendBadmintonRegistrationEmails(bundle, entries);
     }
 
     private Integer calculateAge(LocalDate dob) {
@@ -339,25 +391,36 @@ public class BadmintonRegistrationService {
     }
 
     private BadmintonRegistrationEntryResponse mapEntryToResponse(BadmintonRegistrationEntry entry) {
-        BadmintonPartnerInfo partnerInfo = null;
-        if (entry.getPartnerFullName() != null) {
-            partnerInfo = new BadmintonPartnerInfo();
-            partnerInfo.setUserId(entry.getPartnerUserId());
-            partnerInfo.setFullName(entry.getPartnerFullName());
-            partnerInfo.setAge(entry.getPartnerAge());
-            partnerInfo.setContactNumber(entry.getPartnerContact());
-        }
-
         return BadmintonRegistrationEntryResponse.builder()
                 .entryId(entry.getId())
                 .categoryId(entry.getCategory().getId())
                 .categoryName(entry.getCategory().getName())
                 .categoryType(entry.getCategoryType())
                 .pricePerPlayer(entry.getPricePerPlayer())
-                .partnerInfo(partnerInfo)
+                .registrationCode(entry.getRegistrationCode())
+                .partnerInfo(buildPartnerInfo(entry))
                 .selfRelation(entry.getSelfRelation())
                 .partnerRelation(entry.getPartnerRelation())
                 .build();
+    }
+
+    private BadmintonPartnerInfo buildPartnerInfo(BadmintonRegistrationEntry entry) {
+        if (entry.getPartnerFullName() == null) {
+            return null;
+        }
+        BadmintonPartnerInfo partnerInfo = new BadmintonPartnerInfo();
+        partnerInfo.setUserId(entry.getPartnerUserId());
+        partnerInfo.setFullName(entry.getPartnerFullName());
+        partnerInfo.setAge(entry.getPartnerAge());
+        partnerInfo.setContactNumber(entry.getPartnerContact());
+        partnerInfo.setRelationLabel(entry.getPartnerRelation());
+        if (entry.getPartnerUserId() != null) {
+            userRepository.findById(entry.getPartnerUserId()).ifPresent(partner -> {
+                partnerInfo.setPlayerPhoto(partner.getPlayerPhoto());
+                partnerInfo.setHouseNumber(partner.getHouseNumber());
+            });
+        }
+        return partnerInfo;
     }
 
     private User fetchPartnerUser(BadmintonPartnerInfo partnerInfo) {

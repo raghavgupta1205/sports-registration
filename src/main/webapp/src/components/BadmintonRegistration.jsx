@@ -215,6 +215,8 @@ const BadmintonRegistration = () => {
   });
   const [searchLoading, setSearchLoading] = useState(false);
   const [photoPrefilled, setPhotoPrefilled] = useState(false);
+  const [pendingBundleId, setPendingBundleId] = useState(null);
+  const [hasPendingBundle, setHasPendingBundle] = useState(false);
 
   const playerAge = useMemo(() => calcAge(user?.dateOfBirth), [user]);
   const playerGender = user?.gender || null;
@@ -249,12 +251,28 @@ const BadmintonRegistration = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [eventResp, categoryResp] = await Promise.all([
+        const [eventResp, categoryResp, pendingResp] = await Promise.all([
           api.get(`/events/${eventId}`),
-          badmintonApi.getCategories()
+          badmintonApi.getCategories(),
+          badmintonApi.getPendingBundle(eventId)
         ]);
         setEvent(eventResp.data.data);
         setCategories(categoryResp.data.data || []);
+        const pendingData = pendingResp.data.data;
+        if (pendingData?.entries?.length) {
+          setSelectedEntries(pendingData.entries.map(mapServerEntryToSelection));
+          setPendingBundleId(pendingData.bundleRegistrationId);
+          setHasPendingBundle(true);
+          setTermsAccepted(true);
+          if (pendingData.playerPhoto) {
+            setPlayerPhoto(pendingData.playerPhoto);
+            setPlayerPhotoPreview(getFileUrl(pendingData.playerPhoto));
+            setPhotoPrefilled(true);
+          }
+        } else {
+          setPendingBundleId(null);
+          setHasPendingBundle(false);
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load badminton registration');
       } finally {
@@ -355,6 +373,8 @@ const BadmintonRegistration = () => {
 
   const addEntry = (entry) => {
     setSelectedEntries((prev) => [...prev, entry]);
+    setHasPendingBundle(false);
+    setPendingBundleId(null);
     setError('');
   };
 
@@ -461,6 +481,8 @@ const BadmintonRegistration = () => {
 
   const handleRemoveEntry = (categoryId) => {
     setSelectedEntries((prev) => prev.filter((entry) => entry.categoryId !== categoryId));
+    setHasPendingBundle(false);
+    setPendingBundleId(null);
   };
 
   const PRICE_PER_PLAYER = 800;
@@ -521,28 +543,39 @@ const BadmintonRegistration = () => {
         return;
       }
       setError('');
-      const payload = {
-        eventId: Number(eventId),
-        entries: selectedEntries.map((entry) => ({
-          categoryId: entry.categoryId,
-          categoryType: entry.categoryType,
-          partnerInfo: entry.partnerInfo || null,
-          selfRelation: entry.selfRelation || null,
-          partnerRelation: entry.partnerRelation || null
-        })),
-        playerPhoto,
-        termsAccepted,
-        totalAmount
-      };
+      let bundleRegistrationId = pendingBundleId;
+      if (!hasPendingBundle) {
+        const payload = {
+          eventId: Number(eventId),
+          entries: selectedEntries.map((entry) => ({
+            categoryId: entry.categoryId,
+            categoryType: entry.categoryType,
+            partnerInfo: entry.partnerInfo || null,
+            selfRelation: entry.selfRelation || null,
+            partnerRelation: entry.partnerRelation || null
+          })),
+          playerPhoto,
+          termsAccepted,
+          totalAmount
+        };
 
-      const response = await badmintonApi.submitBundle(payload);
-      const registrationData = response.data.data;
-      if (registrationData?.entries?.length) {
-        setSelectedEntries(registrationData.entries.map(mapServerEntryToSelection));
+        const response = await badmintonApi.submitBundle(payload);
+        const registrationData = response.data.data;
+        if (registrationData?.entries?.length) {
+          setSelectedEntries(registrationData.entries.map(mapServerEntryToSelection));
+        }
+        bundleRegistrationId = registrationData.bundleRegistrationId;
+        setPendingBundleId(bundleRegistrationId);
+        setHasPendingBundle(true);
       }
-      const { bundleRegistrationId, totalAmount: amount } = registrationData;
+
+      if (!bundleRegistrationId) {
+        setError('Unable to determine bundle to pay for');
+        return;
+      }
+
       const orderResponse = await badmintonApi.createOrder(bundleRegistrationId);
-      const { orderId } = orderResponse.data.data;
+      const { orderId, amount } = orderResponse.data.data;
 
       const options = {
         key: 'rzp_test_RgO20QqKKlOShG',

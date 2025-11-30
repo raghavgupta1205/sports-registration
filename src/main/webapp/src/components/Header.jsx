@@ -30,7 +30,7 @@ const Header = () => {
         <Box sx={{ display: 'flex', gap: 1.5 }}>
           {user ? (
             <>
-              {[{ label: 'Dashboard', path: '/dashboard' }].map((link) => (
+              {[{ label: 'Dashboard', path: '/dashboard' }, { label: 'My Profile', path: '/profile' }].map((link) => (
                 <Button key={link.path} color="inherit" onClick={() => navigate(link.path)}>
                   {link.label}
                 </Button>

@@ -42,12 +42,15 @@ api.interceptors.response.use(
 const authApi = {
     login: (credentials) => api.post('/auth/login', credentials),
     register: (userData) => api.post('/auth/register', userData),
-    me: () => api.get('/auth/me')
+    me: () => api.get('/auth/me'),
+    changePassword: (payload) => api.post('/auth/change-password', payload)
 };
 
 const registrationApi = {
     create: (data) => api.post('/registrations', data),
-    getUserRegistrations: () => api.get('/registrations')
+    getUserRegistrations: () => api.get('/registrations'),
+    getProfileHistory: () => api.get('/registrations/user'),
+    getProfileBadmintonEntries: () => api.get('/registrations/user/badminton')
 };
 
 const buildQueryString = (params = {}) => {
@@ -74,6 +77,7 @@ const badmintonApi = {
     submitBundle: (payload) => api.post('/badminton-registrations/complete', payload),
     createOrder: (bundleId) => api.post('/badminton-registrations/order', { bundleId }),
     verifyPayment: (payload) => api.post('/badminton-registrations/verify', payload),
+    getPendingBundle: (eventId) => api.get(`/badminton-registrations/pending/${eventId}`),
     uploadPlayerPhoto: (formData) =>
         api.post('/badminton-registrations/upload/player-photo', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }

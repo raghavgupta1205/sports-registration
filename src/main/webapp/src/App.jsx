@@ -1,9 +1,9 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { 
-  Home, 
-  Login, 
-  Register, 
+import {
+  Home,
+  Login,
+  Register,
   Dashboard,
   CricketRegistration,
   BadmintonRegistration,
@@ -11,7 +11,8 @@ import {
   AdminRoute,
   AdminRegistrations,
   ForgotPassword,
-  ResetPassword
+  ResetPassword,
+  Profile
 } from './components';
 import PageLayout from './components/PageLayout';
 
@@ -29,6 +30,14 @@ function App() {
           element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
             </PrivateRoute>
           }
         />

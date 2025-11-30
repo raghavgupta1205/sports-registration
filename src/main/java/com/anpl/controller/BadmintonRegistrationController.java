@@ -56,6 +56,14 @@ public class BadmintonRegistrationController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @GetMapping("/pending/{eventId}")
+    public ResponseEntity<ApiResponse<BadmintonEventRegistrationResponse>> getPendingBundle(
+            @AuthenticationPrincipal(expression = "user") User currentUser,
+            @PathVariable Long eventId) {
+        BadmintonEventRegistrationResponse response = registrationService.getPendingBundle(currentUser, eventId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @PostMapping(value = "/upload/player-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadPlayerPhoto(
             @RequestParam("file") MultipartFile file) throws IOException {

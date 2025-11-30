@@ -1,6 +1,11 @@
 package com.anpl.controller;
 
-import com.anpl.dto.*;
+import com.anpl.dto.ApiResponse;
+import com.anpl.dto.BadmintonRegistrationProfileEntry;
+import com.anpl.dto.OrderRequest;
+import com.anpl.dto.OrderResponse;
+import com.anpl.dto.PaymentVerificationRequest;
+import com.anpl.dto.RegistrationResponse;
 import com.anpl.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +35,12 @@ public class RegistrationController {
     public ResponseEntity<ApiResponse<List<RegistrationResponse>>> getUserRegistrations() {
         List<RegistrationResponse> registrations = registrationService.getCurrentUserRegistrations();
         return ResponseEntity.ok(ApiResponse.success(registrations));
+    }
+
+    @GetMapping("/user/badminton")
+    public ResponseEntity<ApiResponse<List<BadmintonRegistrationProfileEntry>>> getUserBadmintonEntries() {
+        List<BadmintonRegistrationProfileEntry> entries = registrationService.getCurrentUserBadmintonEntries();
+        return ResponseEntity.ok(ApiResponse.success(entries));
     }
 
     @GetMapping("/{registrationId}/status")

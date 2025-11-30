@@ -17,6 +17,7 @@ public class UserResponse {
     private String registrationNumber;
     private String block;
     private String houseNumber;
+    private String residentialAddress;
     private LocalDate dateOfBirth;
     private String gender;
     private String playerPhoto;

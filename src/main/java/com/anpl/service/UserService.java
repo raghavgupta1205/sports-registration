@@ -1,5 +1,6 @@
 package com.anpl.service;
 
+import com.anpl.dto.ChangePasswordRequest;
 import com.anpl.dto.LoginRequest;
 import com.anpl.dto.RegistrationRequest;
 import com.anpl.dto.UserResponse;
@@ -127,6 +128,15 @@ public class UserService {
         userRepository.save(user);
     }
 
+    @Transactional
+    public void changePassword(User user, ChangePasswordRequest request) {
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
     private String generateResetToken() {
         return UUID.randomUUID().toString();
     }
@@ -145,6 +155,7 @@ public class UserService {
                 .registrationNumber(user.getRegistrationNumber())
                 .block(user.getBlock())
                 .houseNumber(user.getHouseNumber())
+                .residentialAddress(user.getResidentialAddress())
                 .dateOfBirth(user.getDateOfBirth())
                 .gender(user.getGender() != null ? user.getGender().name() : null)
                 .playerPhoto(user.getPlayerPhoto())

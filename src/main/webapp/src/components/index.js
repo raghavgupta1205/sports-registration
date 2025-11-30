@@ -14,3 +14,4 @@ export { default as ForgotPassword } from './ForgotPassword';
 export { default as ResetPassword } from './ResetPassword';
 export { default as AdminRegistrations } from './AdminRegistrations';
 export { default as AdminRoute } from './AdminRoute';
+export { default as Profile } from './Profile';

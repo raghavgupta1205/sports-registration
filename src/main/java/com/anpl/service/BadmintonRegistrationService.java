@@ -189,22 +189,7 @@ public class BadmintonRegistrationService {
 
         bundle.setTotalAmount(totalAmount);
         BadmintonRegistrationBundle savedBundle = bundleRepository.saveAndFlush(bundle);
-
-        List<BadmintonRegistrationEntryResponse> entryResponses = savedBundle.getEntries().stream()
-                .map(this::mapEntryToResponse)
-                .collect(Collectors.toList());
-
-        return BadmintonEventRegistrationResponse.builder()
-                .bundleRegistrationId(savedBundle.getId())
-                .eventId(event.getId())
-                .eventName(event.getName())
-                .playerFullName(currentUser.getFullName())
-                .playerPhoto(currentUser.getPlayerPhoto())
-                .totalEntries(savedBundle.getEntries().size())
-                .totalAmount(savedBundle.getTotalAmount())
-                .readyForPayment(true)
-                .entries(entryResponses)
-                .build();
+        return mapBundleToResponse(savedBundle);
     }
 
     private void handleSoloEntry(BadmintonRegistrationEntry entry) {
@@ -308,22 +293,7 @@ public class BadmintonRegistrationService {
         BadmintonRegistrationBundle bundle = bundleRepository.findById(bundleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bundle not found"));
 
-        List<BadmintonRegistrationEntryResponse> responses = bundle.getEntries().stream()
-                .map(this::mapEntryToResponse)
-                .collect(Collectors.toList());
-
-        return BadmintonEventRegistrationResponse.builder()
-                .bundleRegistrationId(bundle.getId())
-                .eventId(bundle.getEvent().getId())
-                .eventName(bundle.getEvent().getName())
-                .playerFullName(bundle.getUser().getFullName())
-                .playerPhoto(bundle.getUser().getPlayerPhoto())
-                .totalEntries(bundle.getEntries().size())
-                .totalAmount(bundle.getTotalAmount())
-                .entries(responses)
-                .readyForPayment(bundle.getBundleStatus() == RegistrationStatus.PENDING)
-                .paymentOrderId(bundle.getPaymentOrderId())
-                .build();
+        return mapBundleToResponse(bundle);
     }
 
     @Transactional
@@ -383,6 +353,20 @@ public class BadmintonRegistrationService {
         sendBadmintonRegistrationEmails(bundle, entries);
     }
 
+    @Transactional(readOnly = true)
+    public BadmintonEventRegistrationResponse getPendingBundle(User user, Long eventId) {
+        if (user == null || eventId == null) {
+            return null;
+        }
+        return bundleRepository
+                .findFirstByUserIdAndEventIdAndBundleStatusOrderByUpdatedAtDesc(
+                        user.getId(),
+                        eventId,
+                        RegistrationStatus.PENDING)
+                .map(this::mapBundleToResponse)
+                .orElse(null);
+    }
+
     private Integer calculateAge(LocalDate dob) {
         if (dob == null) {
             return null;
@@ -421,6 +405,25 @@ public class BadmintonRegistrationService {
             });
         }
         return partnerInfo;
+    }
+
+    private BadmintonEventRegistrationResponse mapBundleToResponse(BadmintonRegistrationBundle bundle) {
+        List<BadmintonRegistrationEntryResponse> responses = bundle.getEntries().stream()
+                .map(this::mapEntryToResponse)
+                .collect(Collectors.toList());
+
+        return BadmintonEventRegistrationResponse.builder()
+                .bundleRegistrationId(bundle.getId())
+                .eventId(bundle.getEvent().getId())
+                .eventName(bundle.getEvent().getName())
+                .playerFullName(bundle.getUser().getFullName())
+                .playerPhoto(bundle.getUser().getPlayerPhoto())
+                .totalEntries(bundle.getEntries().size())
+                .totalAmount(bundle.getTotalAmount())
+                .entries(responses)
+                .readyForPayment(bundle.getBundleStatus() == RegistrationStatus.PENDING)
+                .paymentOrderId(bundle.getPaymentOrderId())
+                .build();
     }
 
     private User fetchPartnerUser(BadmintonPartnerInfo partnerInfo) {

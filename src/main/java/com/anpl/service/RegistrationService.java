@@ -1,11 +1,17 @@
 package com.anpl.service;
 
-import com.anpl.dto.*;
+import com.anpl.dto.BadmintonRegistrationProfileEntry;
+import com.anpl.dto.EventRegistrationResponse;
+import com.anpl.dto.OrderRequest;
+import com.anpl.dto.OrderResponse;
+import com.anpl.dto.PaymentVerificationRequest;
+import com.anpl.dto.RegistrationResponse;
 import com.anpl.model.EventRegistration;
 import com.anpl.model.Event;
 import com.anpl.model.PlayerProfile;
 import com.anpl.model.CricketPlayerSkills;
 import com.anpl.model.RegistrationStatus;
+import com.anpl.model.BadmintonRegistrationBundle;
 import com.anpl.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +31,7 @@ import com.anpl.exception.PaymentException;
 import com.anpl.repository.PaymentRepository;
 import com.anpl.repository.PlayerProfileRepository;
 import com.anpl.repository.CricketPlayerSkillsRepository;
+import com.anpl.repository.BadmintonRegistrationBundleRepository;
 import com.anpl.model.Payment;
 import com.anpl.model.PaymentStatus;
 import java.util.Optional;
@@ -41,6 +48,7 @@ public class RegistrationService {
     private final RazorpayClient razorpayClient;
     private final PaymentService paymentService;
     private final EventRegistrationService eventRegistrationService;
+    private final BadmintonRegistrationBundleRepository badmintonRegistrationBundleRepository;
     private final PaymentRepository paymentRepository;
     private final PlayerProfileRepository playerProfileRepository;
     private final CricketPlayerSkillsRepository cricketPlayerSkillsRepository;
@@ -125,9 +133,31 @@ public class RegistrationService {
             .map(reg -> RegistrationResponse.builder()
                 .registrationId(reg.getId())
                 .eventId(reg.getEvent().getId())
+                .eventName(reg.getEvent().getName())
+                .eventType(reg.getEvent().getEventType())
+                .registrationCode(reg.getRegistrationNumber())
                 .status(reg.getRegistrationStatus().toString())
+                .createdAt(reg.getCreatedAt())
                 .build())
             .collect(Collectors.toList());
+    }
+
+    public List<BadmintonRegistrationProfileEntry> getCurrentUserBadmintonEntries() {
+        Long userId = securityUtils.getCurrentUserId();
+        List<BadmintonRegistrationBundle> bundles = badmintonRegistrationBundleRepository.findByUserId(userId);
+        return bundles.stream()
+                .flatMap(bundle -> bundle.getEntries().stream()
+                        .map(entry -> BadmintonRegistrationProfileEntry.builder()
+                                .entryId(entry.getId())
+                                .bundleId(bundle.getId())
+                                .eventName(bundle.getEvent().getName())
+                                .categoryName(entry.getCategory().getName())
+                                .categoryType(entry.getCategoryType().name())
+                                .registrationCode(entry.getRegistrationCode())
+                                .partnerName(entry.getPartnerFullName())
+                                .status(entry.getEntryStatus())
+                                .build()))
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -155,8 +185,12 @@ public class RegistrationService {
             return RegistrationResponse.builder()
                 .registrationId(registration.getId())
                 .eventId(registration.getEvent().getId())
+                .eventName(registration.getEvent().getName())
+                .eventType(registration.getEvent().getEventType())
+                .registrationCode(registration.getRegistrationNumber())
                 .status(registration.getRegistrationStatus().toString())
                 .paymentStatus(paymentOpt.map(p -> p.getPaymentStatus().toString()).orElse("PENDING"))
+                .createdAt(registration.getCreatedAt())
                 .build();
         } catch (RazorpayException e) {
             throw new PaymentException("Failed to check payment status: " + e.getMessage());
